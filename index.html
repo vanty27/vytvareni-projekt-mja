@@ -1,1 +1,4631 @@
-// App je vložený přímo v index.html podle prototypu v33.
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Jobs Agent – mapa projektu</title>
+
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --border: #dfe7f2;
+      --text: #172033;
+      --muted: #65758b;
+      --blue: #2563eb;
+      --blue-dark: #1742a0;
+      --danger: #ef4444;
+      --green: #9be071;
+      --orange: #ffb84d;
+      --red: #ff5757;
+      --shadow: 0 14px 40px rgba(17, 24, 39, 0.12);
+      --soft-shadow: 0 8px 24px rgba(17, 24, 39, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font-family: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .screen {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* LOGIN */
+    .login-screen {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.16), transparent 30%),
+        radial-gradient(circle at 80% 70%, rgba(132, 204, 22, 0.16), transparent 28%),
+        #f8fbff;
+    }
+
+    .login-card {
+      width: 420px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 34px;
+      box-shadow: var(--shadow);
+    }
+
+    .login-logo {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      margin-bottom: 26px;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin: -16px 0 24px;
+      line-height: 1.45;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      font-weight: 700;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .field input {
+      height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .primary-btn {
+      background: var(--blue);
+      color: white;
+      height: 44px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 15px;
+      padding: 0 16px;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+    }
+
+    .primary-btn:hover {
+      background: var(--blue-dark);
+    }
+
+    .secondary-btn {
+      background: #eef4ff;
+      color: #24426b;
+      border: 1px solid #d9e5f8;
+      height: 40px;
+      border-radius: 13px;
+      font-weight: 800;
+      padding: 0 14px;
+    }
+
+    .danger-btn {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      height: 40px;
+      border-radius: 13px;
+      font-weight: 800;
+      padding: 0 14px;
+    }
+
+    .login-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    /* PROJECTS */
+    .app-header {
+      height: 72px;
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 14px;
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      position: relative;
+    }
+
+    .app-title {
+      font-size: 23px;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      margin-right: auto;
+    }
+
+    .projects-page {
+      height: calc(100vh - 72px);
+      overflow: auto;
+      padding: 26px 30px 34px;
+      background: linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+    }
+
+    .projects-hero {
+      max-width: 1280px;
+      margin: 0 auto 10px;
+      text-align: center;
+    }
+
+    .projects-eyebrow {
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .projects-hero h1 {
+      margin: 0;
+      font-size: 40px;
+      line-height: 1;
+      letter-spacing: -0.06em;
+    }
+
+    .projects-hero p {
+      margin: 8px 0 0;
+      color: #64748b;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .projects-toolbar {
+      max-width: 1280px;
+      margin: 18px auto 22px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+    }
+
+    .project-grid {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--soft-shadow);
+      overflow: hidden;
+    }
+
+    .project-column {
+      min-height: 520px;
+      padding: 26px 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.92));
+    }
+
+    .project-column + .project-column {
+      border-left: 1px solid #dbe4ef;
+    }
+
+    .project-column-title {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.05;
+      letter-spacing: -0.05em;
+    }
+
+    .project-column-subtitle {
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: -4px;
+      margin-bottom: 4px;
+    }
+
+    .project-column-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .project-card {
+      background: white;
+      border: 1px solid #dbe4ef;
+      border-radius: 18px;
+      min-height: 88px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: 0.15s ease;
+      cursor: pointer;
+    }
+
+    .project-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: #bfd0e8;
+    }
+
+    .project-card h3 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.04em;
+    }
+
+    .project-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+
+    .column-empty {
+      margin-top: 8px;
+      padding: 16px 14px;
+      border-radius: 16px;
+      border: 1px dashed #d6e0ee;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.45;
+      background: rgba(248, 250, 252, 0.9);
+    }
+
+    .empty-projects {
+      max-width: 1280px;
+      margin: 0 auto 18px;
+      padding: 20px 22px;
+      border-radius: 22px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      box-shadow: var(--soft-shadow);
+      text-align: center;
+    }
+
+    .empty-projects h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .empty-projects p {
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .project-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .project-column + .project-column {
+        border-left: 0;
+        border-top: 1px solid #dbe4ef;
+      }
+    }
+
+
+    /* MAP SCREEN */
+    .map-screen {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #dbe4ef;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .map-title {
+      font-size: 22px;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      margin-right: auto;
+    }
+
+    .zoom-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      height: 44px;
+      padding: 0 8px;
+    }
+
+    .zoom-control button {
+      width: 34px;
+      height: 32px;
+      border-radius: 10px;
+      background: #f8fafc;
+      font-size: 19px;
+      color: #334155;
+      font-weight: 800;
+    }
+
+    .zoom-value {
+      min-width: 54px;
+      text-align: center;
+      font-weight: 850;
+      color: #1f2937;
+    }
+
+    .workspace {
+      position: relative;
+      height: calc(100vh - 72px);
+      overflow: auto;
+      background-color: #f8fafc;
+      background-image:
+        radial-gradient(circle, rgba(100, 116, 139, 0.18) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    .board-wrap {
+      position: relative;
+      width: 5200px;
+      height: 3600px;
+      transform-origin: 0 0;
+    }
+
+    #connections {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 5200px;
+      height: 3600px;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 1;
+    }
+
+    .node {
+      position: absolute;
+      width: 330px;
+      min-height: 430px;
+      background: #ffffff;
+      border: 1px solid #d8e1ee;
+      border-radius: 22px;
+      box-shadow: var(--soft-shadow);
+      z-index: 5;
+      user-select: none;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .node.selected {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.13), var(--shadow);
+    }
+
+    .node.notes-open {
+      z-index: 80;
+    }
+
+    .node-top {
+      position: relative;
+      padding: 11px 44px 8px 14px;
+      cursor: grab;
+      border-radius: 22px 22px 0 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    }
+
+    .node-top:active {
+      cursor: grabbing;
+    }
+
+    .title-input {
+      width: 100%;
+      height: 32px;
+      border: 0;
+      outline: none;
+      background: transparent;
+      text-align: left;
+      font-size: 18px;
+      font-weight: 900;
+      color: #111827;
+      padding: 0;
+    }
+
+    .compact-color-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      height: 20px;
+    }
+
+    .compact-color-row span {
+      color: rgba(17, 24, 39, 0.62);
+      font-size: 11px;
+      font-weight: 850;
+      margin-right: 3px;
+    }
+
+    .compact-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.22);
+      cursor: pointer;
+    }
+
+    .compact-dot.active {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+    }
+
+    .approval-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      height: 20px;
+      position: relative;
+    }
+
+    .approval-main-btn {
+      width: 24px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      line-height: 1;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .approval-popover {
+      position: absolute;
+      left: 0;
+      top: 28px;
+      background: white;
+      border: 1px solid #dbe4ef;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 58px);
+      gap: 8px;
+      z-index: 60;
+    }
+
+    .approval-popover.hidden-panel {
+      display: none;
+    }
+
+    .approval-person {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .approval-thumb {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      border: 1px solid #dbe4ef;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      line-height: 1;
+      filter: grayscale(1);
+    }
+
+    .approval-thumb.active {
+      background: #2563eb;
+      border-color: #1742a0;
+      filter: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    }
+
+    .bulb-button {
+      position: absolute;
+      top: -18px;
+      right: -18px;
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      background: #fff7cc;
+      border: 1px solid #fde68a;
+      box-shadow: var(--soft-shadow);
+      font-size: 24px;
+      display: grid;
+      place-items: center;
+      z-index: 10;
+    }
+
+    .bulb-button.has-notes::after {
+      content: attr(data-count);
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #2563eb;
+      color: white;
+      font-size: 11px;
+      line-height: 18px;
+      font-weight: 900;
+    }
+
+    .title-green {
+      background: linear-gradient(180deg, #b8ed99, var(--green));
+    }
+
+    .title-orange {
+      background: linear-gradient(180deg, #ffd085, var(--orange));
+    }
+
+    .title-red {
+      background: linear-gradient(180deg, #ff7373, var(--red));
+    }
+
+    .image-area {
+      height: 280px;
+      background: linear-gradient(135deg, #f8fafc, #eef3fa);
+      border-bottom: 1px solid #e3ebf5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .image-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #fff;
+      display: block;
+    }
+
+    .no-image {
+      text-align: center;
+      color: #8a97a8;
+      padding: 18px;
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .node-actions {
+      padding: 11px 14px 15px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 30px;
+    }
+
+    .detail-input {
+      flex: 1;
+      height: 34px;
+      border: 1px solid #dce5f2;
+      border-radius: 11px;
+      padding: 0 10px;
+      outline: none;
+      color: #334155;
+      font-weight: 750;
+      background: #fbfdff;
+    }
+
+    .color-row {
+      display: none;
+    }
+
+    .color-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-right: auto;
+    }
+
+    .color-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px #cbd5e1;
+      cursor: pointer;
+    }
+
+    .color-dot.active {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+
+    .dot-green {
+      background: var(--green);
+    }
+
+    .dot-orange {
+      background: var(--orange);
+    }
+
+    .dot-red {
+      background: var(--red);
+    }
+
+    .node-button-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mini-btn {
+      flex: 1;
+      height: 34px;
+      border-radius: 11px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #dbe4ef;
+      font-weight: 850;
+      font-size: 12px;
+    }
+
+    .mini-btn.danger {
+      background: #fff1f2;
+      border-color: #fecdd3;
+      color: #be123c;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .add-branch {
+      position: absolute;
+      left: -18px;
+      bottom: -18px;
+      width: 48px;
+      height: 48px;
+      background: white;
+      border: 1px solid #dce5f2;
+      border-radius: 999px;
+      box-shadow: var(--soft-shadow);
+      font-size: 27px;
+      font-weight: 700;
+      color: #111827;
+      z-index: 8;
+    }
+
+    .delete-card-x {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 24px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(185, 28, 28, 0.25);
+      color: #b91c1c;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 900;
+      z-index: 11;
+      display: grid;
+      place-items: center;
+    }
+
+    .delete-card-x:hover {
+      background: #fee2e2;
+    }
+
+    .connector-dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #9aa5b5;
+      z-index: 9;
+    }
+
+    .connector-dot.left {
+      left: -7px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .connector-dot.right {
+      right: -7px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .connector-dot.bottom {
+      bottom: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .notes-panel {
+      position: absolute;
+      right: -680px;
+      top: 22px;
+      width: 660px;
+      max-height: 720px;
+      background: white;
+      border: 1px solid #d8e1ee;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      z-index: 200;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .notes-panel.hidden-panel {
+      display: none;
+    }
+
+    .notes-header {
+      height: 58px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #e3ebf5;
+      background: #fffdf2;
+      font-weight: 900;
+    }
+
+    .notes-header span {
+      margin-right: auto;
+    }
+
+    .notes-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 900;
+    }
+
+    .notes-list {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: auto;
+      min-height: 300px;
+      max-height: 470px;
+      background: #fbfdff;
+    }
+
+    .note-bubble {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .note-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: #2563eb;
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .note-content {
+      background: #eef4ff;
+      border: 1px solid #d9e5f8;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 15px;
+      line-height: 1.35;
+      color: #26354c;
+      word-break: break-word;
+    }
+
+    .note-meta {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .notes-form {
+      border-top: 1px solid #e3ebf5;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      background: white;
+    }
+
+    .notes-form input,
+    .notes-form textarea {
+      width: 100%;
+      border: 1px solid #dce5f2;
+      border-radius: 14px;
+      padding: 11px 13px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    .notes-form textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+
+
+    .timeline-board {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      min-height: calc(100vh - 72px);
+      background: white;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: auto;
+      z-index: 5;
+    }
+
+    .timeline-content {
+      min-width: max-content;
+    }
+
+    .timeline-topbar {
+      height: 54px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      border-bottom: 1px solid #dbe4ef;
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 8;
+    }
+
+    .timeline-title-cell {
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      font-size: 18px;
+      font-weight: 950;
+      border-right: 1px solid #dbe4ef;
+    }
+
+    .timeline-dates {
+      position: relative;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 46px;
+      align-items: center;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+      min-width: max-content;
+    }
+
+    .timeline-dates div {
+      border-right: 1px dashed #dbe4ef;
+      height: 100%;
+      width: 46px;
+      display: grid;
+      place-items: center;
+      white-space: nowrap;
+    }
+
+    .timeline-row {
+      height: 82px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      border-bottom: 1px solid #e6edf6;
+    }
+
+    .timeline-row-label {
+      display: grid;
+      grid-template-columns: 42px 1fr 42px;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-right: 1px solid #dbe4ef;
+      background: #ffffff;
+      position: sticky;
+      left: 0;
+      z-index: 7;
+    }
+
+    .timeline-add-row-btn,
+    .timeline-delete-row-btn,
+    .timeline-edit-row-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      border: 1px solid #dbe4ef;
+      color: #334155;
+      font-size: 18px;
+      font-weight: 950;
+      display: grid;
+      place-items: center;
+    }
+
+    .timeline-delete-row-btn {
+      background: #fff1f2;
+      border-color: #fecdd3;
+      color: #be123c;
+    }
+
+    .timeline-edit-row-btn {
+      font-size: 15px;
+    }
+
+    .timeline-row-name {
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      font-size: 18px;
+      font-weight: 900;
+      color: #111827;
+      text-align: center;
+    }
+
+    .timeline-lane {
+      position: relative;
+      background-image: repeating-linear-gradient(
+        to right,
+        transparent 0,
+        transparent 45px,
+        #e6edf6 45px,
+        #e6edf6 46px
+      );
+      overflow: visible;
+      min-width: max-content;
+    }
+
+    .timeline-item {
+      position: absolute;
+      top: 24px;
+      height: 44px;
+      border-radius: 999px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.13);
+      border: 1px solid rgba(15, 23, 42, 0.09);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 42px 0 18px;
+      font-weight: 950;
+      color: #111827;
+      cursor: pointer;
+      min-width: 42px;
+    }
+
+    .timeline-item .timeline-item-edit {
+      position: absolute;
+      right: 8px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #334155;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      font-size: 14px;
+      display: grid;
+      place-items: center;
+    }
+
+    .timeline-item-green { background: linear-gradient(180deg, #b8ed99, var(--green)); }
+    .timeline-item-orange { background: linear-gradient(180deg, #ffd085, var(--orange)); }
+    .timeline-item-red { background: linear-gradient(180deg, #ff7373, var(--red)); }
+    .timeline-item-blue { background: linear-gradient(180deg, #bfdbfe, #60a5fa); }
+    .timeline-item-gray { background: linear-gradient(180deg, #e5e7eb, #9ca3af); }
+
+    .timeline-add-row-global {
+      margin: 14px;
+      height: 38px;
+      border-radius: 12px;
+      background: #eef4ff;
+      color: #24426b;
+      border: 1px solid #d9e5f8;
+      font-weight: 900;
+      padding: 0 16px;
+    }
+
+    .timeline-modal {
+      width: min(720px, 94vw);
+      background: white;
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .timeline-modal-body {
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .timeline-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .timeline-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .timeline-field label {
+      font-size: 13px;
+      font-weight: 900;
+      color: #334155;
+    }
+
+    .timeline-field input,
+    .timeline-field select {
+      height: 44px;
+      border: 1px solid #dce5f2;
+      border-radius: 13px;
+      padding: 0 12px;
+      outline: none;
+      font-size: 15px;
+      background: #fbfdff;
+    }
+
+    .timeline-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 22px 22px;
+    }
+
+    @media (max-width: 900px) {
+      .timeline-board {
+        left: 200px;
+        width: 1200px;
+      }
+
+      .timeline-form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+
+    .notes-calendar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      min-height: calc(100vh - 72px);
+      background: #ffffff;
+      z-index: 5;
+      overflow: auto;
+    }
+
+    .calendar-toolbar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      border-bottom: 1px solid #dbe4ef;
+      background: #fbfdff;
+      position: sticky;
+      top: 0;
+      z-index: 9;
+    }
+
+    .calendar-toolbar h2 {
+      margin: 0 auto 0 0;
+      font-size: 24px;
+      letter-spacing: -0.04em;
+    }
+
+    .calendar-nav-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: #eef4ff;
+      border: 1px solid #d9e5f8;
+      color: #24426b;
+      font-size: 20px;
+      font-weight: 950;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(170px, 1fr));
+      min-width: 1190px;
+      border-left: 1px solid #e6edf6;
+      border-top: 1px solid #e6edf6;
+    }
+
+    .calendar-weekday {
+      height: 42px;
+      display: grid;
+      place-items: center;
+      background: #f8fafc;
+      border-right: 1px solid #e6edf6;
+      border-bottom: 1px solid #e6edf6;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .calendar-day {
+      min-height: 155px;
+      border-right: 1px solid #e6edf6;
+      border-bottom: 1px solid #e6edf6;
+      background: #ffffff;
+      padding: 10px;
+      position: relative;
+    }
+
+    .calendar-day.other-month {
+      background: #f8fafc;
+      color: #94a3b8;
+    }
+
+    .calendar-day-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .calendar-day-number {
+      font-size: 14px;
+      font-weight: 950;
+      color: #172033;
+      margin-right: auto;
+    }
+
+    .calendar-add-note {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #eef4ff;
+      border: 1px solid #d9e5f8;
+      color: #24426b;
+      font-weight: 950;
+      font-size: 18px;
+      display: grid;
+      place-items: center;
+    }
+
+    .calendar-note {
+      background: #eef4ff;
+      border: 1px solid #d9e5f8;
+      color: #1e3a8a;
+      border-radius: 12px;
+      padding: 7px 9px;
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 850;
+      margin-bottom: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .calendar-note:hover {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    }
+
+    .calendar-note small {
+      display: block;
+      color: #64748b;
+      font-size: 10px;
+      margin-top: 2px;
+      font-weight: 800;
+    }
+
+
+    .project-type-modal {
+      width: min(920px, 94vw);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .type-modal-title {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+
+    .type-modal-subtitle {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .type-name-input {
+      width: 100%;
+      height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0 14px;
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 18px;
+      font-weight: 750;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .type-card {
+      background: #f8fafc;
+      border: 1px solid #dbe4ef;
+      border-radius: 20px;
+      padding: 18px;
+      min-height: 150px;
+      text-align: left;
+      transition: 0.15s ease;
+    }
+
+    .type-card:hover {
+      transform: translateY(-2px);
+      background: white;
+      box-shadow: var(--soft-shadow);
+      border-color: #bfd0e8;
+    }
+
+    .type-card strong {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 8px;
+      letter-spacing: -0.03em;
+    }
+
+    .type-card span {
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .type-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pavojk-node {
+      width: 250px;
+      min-height: 104px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      padding: 22px 42px 20px;
+    }
+
+    .pavojk-title {
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      text-align: center;
+      font-size: 19px;
+      font-weight: 950;
+      color: #111827;
+      padding: 0;
+    }
+
+    .pavojk-detail-btn {
+      position: absolute;
+      right: 18px;
+      bottom: -12px;
+      height: 25px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: white;
+      color: #334155;
+      border: 1px solid #dbe4ef;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .pavojk-colors {
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 7px;
+      opacity: 0.9;
+    }
+
+    .pavojk-node .add-branch {
+      left: -10px;
+      bottom: 3px;
+      width: 32px;
+      height: 32px;
+      font-size: 20px;
+    }
+
+    .pavojk-node .delete-card-x {
+      left: -9px;
+      right: auto;
+      top: -8px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .pavojk-node .bulb-button {
+      right: -10px;
+      top: -14px;
+      width: 42px;
+      height: 42px;
+      font-size: 20px;
+    }
+
+    .pavojk-node .notes-panel {
+      right: -690px;
+      top: -10px;
+    }
+
+    .detail-editor-modal {
+      width: min(1180px, 96vw);
+      max-height: 94vh;
+      overflow: hidden;
+      background: white;
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-editor-body {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 18px;
+      overflow: auto;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .detail-editor-footer {
+      padding: 14px 22px 22px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background: white;
+      border-top: 1px solid #e3ebf5;
+      flex-shrink: 0;
+    }
+
+    .detail-editor-footer .danger-btn,
+    .detail-editor-footer .primary-btn {
+      min-width: 130px;
+    }
+
+    .detail-textarea {
+      width: 100%;
+      min-height: 520px;
+      resize: vertical;
+      border: 1px solid #dce5f2;
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 16px;
+      line-height: 1.5;
+      outline: none;
+      background: #fbfdff;
+    }
+
+    .detail-side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .detail-image-grid {
+      display: grid;
+      gap: 10px;
+      max-height: 460px;
+      overflow: auto;
+    }
+
+    .detail-image-item {
+      position: relative;
+      border: 1px solid #dce5f2;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #f8fafc;
+      cursor: zoom-in;
+    }
+
+    .detail-image-item:hover {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+    }
+
+    .detail-image-item img {
+      width: 100%;
+      max-height: 190px;
+      object-fit: contain;
+      display: block;
+      background: white;
+    }
+
+    .remove-detail-image {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #b91c1c;
+      border: 1px solid rgba(185, 28, 28, 0.25);
+      font-weight: 950;
+    }
+
+    .timeline-placeholder {
+      position: absolute;
+      left: 1750px;
+      top: 600px;
+      width: 900px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--soft-shadow);
+      padding: 30px;
+      z-index: 5;
+    }
+
+    .timeline-line {
+      height: 6px;
+      border-radius: 999px;
+      background: #dbe4ef;
+      margin: 38px 40px;
+      position: relative;
+    }
+
+    .timeline-line::before,
+    .timeline-line::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #2563eb;
+      transform: translateY(-50%);
+    }
+
+    .timeline-line::before { left: 0; }
+    .timeline-line::after { right: 0; }
+
+
+    #pdfExportArea {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 8mm;
+      }
+
+      html,
+      body {
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+      }
+
+      body > *:not(#pdfExportArea) {
+        display: none !important;
+      }
+
+      #pdfExportArea {
+        display: block !important;
+        background: white !important;
+        color: #111827 !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      .pdf-export-title {
+        display: block;
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0 0 10px;
+        color: #111827;
+      }
+
+      .pdf-map-canvas {
+        position: relative;
+        background: white;
+        overflow: hidden;
+        border: 1px solid #dbe4ef;
+        border-radius: 12px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .pdf-map-inner {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform-origin: 0 0;
+      }
+
+      .pdf-timeline {
+        background: white;
+        overflow: visible !important;
+      }
+
+      .pdf-timeline .timeline-board {
+        position: static !important;
+        width: max-content !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        border: 1px solid #dbe4ef !important;
+      }
+
+      .pdf-timeline .timeline-content {
+        transform: scale(0.68);
+        transform-origin: top left;
+      }
+
+      .pdf-timeline .timeline-topbar,
+      .pdf-timeline .timeline-row-label {
+        position: static !important;
+      }
+
+      .add-branch,
+      .delete-card-x,
+      .bulb-button,
+      .connector-dot,
+      .notes-panel,
+      .timeline-delete-row-btn,
+      .timeline-edit-row-btn,
+      .timeline-add-row-global,
+      .timeline-item-edit,
+      .calendar-add-note,
+      .calendar-nav-btn,
+      .calendar-today-btn {
+        display: none !important;
+      }
+
+      .node,
+      .pavojk-node,
+      .timeline-board,
+      .timeline-item,
+      .title-green,
+      .title-orange,
+      .title-red,
+      .timeline-item-green,
+      .timeline-item-orange,
+      .timeline-item-red,
+      .timeline-item-blue,
+      .timeline-item-gray {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+
+
+    @media (max-width: 900px) {
+      .type-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-editor-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #111827;
+      color: white;
+      padding: 13px 16px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      font-weight: 800;
+      z-index: 999;
+      display: none;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.48);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal {
+      width: min(1320px, 96vw);
+      max-height: 92vh;
+      overflow: auto;
+      background: white;
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+      margin-right: auto;
+    }
+
+    .modal-body {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .modal-image-side {
+      min-height: 72vh;
+      background: #f8fafc;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .modal-body img {
+      width: 100%;
+      height: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+      background: #f8fafc;
+      display: block;
+    }
+
+    .image-info-side {
+      min-height: 72vh;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fbfdff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .image-info-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid #e3ebf5;
+      background: #ffffff;
+    }
+
+    .image-info-header strong {
+      display: block;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+
+    .image-info-header span {
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .image-info-text {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      resize: none;
+      outline: none;
+      padding: 18px;
+      background: #fbfdff;
+      font-size: 15px;
+      line-height: 1.55;
+      color: #1f2937;
+    }
+
+    @media (max-width: 900px) {
+      .modal-body {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-image-side,
+      .image-info-side {
+        min-height: 420px;
+      }
+    }
+
+    .close-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    @media (max-width: 900px) {
+      .app-header {
+        padding: 0 12px;
+      }
+
+      .map-title,
+      .app-title {
+        font-size: 18px;
+      }
+
+      .zoom-control {
+        display: none;
+      }
+
+      .node {
+        width: 280px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOGIN SCREEN -->
+  <section id="loginScreen" class="screen login-screen">
+    <div class="login-card">
+      <div class="login-logo">MY JOBS AGENT</div>
+      <p class="login-subtitle">
+        Interní prototyp pro mapování obrazovek, větvení webu a komentáře k projektu.
+      </p>
+
+      <div class="field">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="email" value="demo@myjobsagent.cz" />
+      </div>
+
+      <div class="field">
+        <label>Heslo</label>
+        <input id="loginPassword" type="password" placeholder="heslo" value="demo" />
+      </div>
+
+      <button id="loginButton" class="primary-btn" style="width:100%;">Přihlásit se</button>
+
+      <div class="login-note">
+        Zatím je to offline prototyp. Přihlášení je jen vizuální, aby seděl tok aplikace.
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS SCREEN -->
+  <section id="projectsScreen" class="screen hidden">
+    <header class="app-header">
+      <div class="app-title">My Jobs Agent – projekty</div>
+      <button id="logoutButton" class="secondary-btn">Odhlásit</button>
+    </header>
+
+    <main class="projects-page">
+      <div class="projects-hero">
+        <div class="projects-eyebrow">Výběr</div>
+        <h1>MY JOBS AGENT</h1>
+        <p>Projekty</p>
+      </div>
+
+      <div class="projects-toolbar">
+        <button id="newProjectButton" class="primary-btn">+ Nový projekt</button>
+      </div>
+
+      <div id="emptyProjects" class="empty-projects hidden">
+        <h2>Zatím nemáš žádný projekt</h2>
+        <p>
+          Klikni na <b>Nový projekt</b>. Pak se ti zařadí do správné sekce: obrázková mapa, pavojk nebo časová osa.
+        </p>
+      </div>
+
+      <div id="projectGrid" class="project-grid"></div>
+    </main>
+  </section>
+
+  <!-- MAP SCREEN -->
+  <section id="mapScreen" class="screen map-screen hidden">
+    <header class="app-header">
+      <button id="backToProjectsButton" class="icon-btn" title="Zpět">←</button>
+      <div id="currentProjectTitle" class="map-title">Projekt</div>
+
+      <button id="addRootCardButton" class="secondary-btn">+ Hlavní karta</button>
+      <button id="exportPdfButton" class="secondary-btn">Export PDF</button>
+
+      <div class="zoom-control">
+        <button id="zoomOutButton">−</button>
+        <div id="zoomValue" class="zoom-value">100%</div>
+        <button id="zoomInButton">+</button>
+      </div>
+
+      <button id="zoomResetButton" class="secondary-btn">100 %</button>
+      <button id="fitButton" class="secondary-btn">Přizpůsobit</button>
+      <button id="deleteProjectButton" class="danger-btn">Smazat projekt</button>
+    </header>
+
+    <div id="workspace" class="workspace">
+      <div id="boardWrap" class="board-wrap">
+        <svg id="connections">
+          <defs>
+            <marker
+              id="arrow"
+              markerWidth="10"
+              markerHeight="10"
+              refX="9"
+              refY="3"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M0,0 L0,6 L9,3 z" fill="#9aa5b5"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMAGE DETAIL MODAL -->
+  <div id="imageModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Detail obrázku</h3>
+        <button id="closeModalButton" class="close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-image-side">
+          <img id="modalImage" alt="Detail obrázku" />
+        </div>
+
+        <aside id="imageInfoSide" class="image-info-side">
+          <div class="image-info-header">
+            <strong>Info k obrázku</strong>
+            <span>Text se ukládá ke kartě v obrázkové mapě.</span>
+          </div>
+          <textarea id="imageDetailText" class="image-info-text" placeholder="Sem napiš informace k tomuto obrázku, co je hotovo, co se má upravit, poznámky pro IT..."></textarea>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- PROJECT TYPE MODAL -->
+  <div id="projectTypeModal" class="modal-backdrop hidden">
+    <div class="project-type-modal">
+      <h2 class="type-modal-title">Nový projekt</h2>
+      <p class="type-modal-subtitle">
+        Vyber, jaký typ mapy chceš vytvořit. Název projektu můžeš upravit před vytvořením.
+      </p>
+      <input id="newProjectNameInput" class="type-name-input" placeholder="Název projektu" />
+
+      <div class="type-grid">
+        <button class="type-card" data-project-type="imageMap">
+          <strong>+ obrázková mapa</strong>
+          <span>Karty s vloženými screenshoty, větvení, poznámky a detail obrázku.</span>
+        </button>
+
+        <button class="type-card" data-project-type="pavojk">
+          <strong>+ klasický pavojk</strong>
+          <span>Jednoduché buňky bez obrázku. Detail se otevře zvlášť a může obsahovat obrázky.</span>
+        </button>
+
+        <button class="type-card" data-project-type="timeline">
+          <strong>+ časová osa</strong>
+          <span>Základ pro plánování kroků, termínů a návazností v čase.</span>
+        </button>
+
+        <button class="type-card" data-project-type="notesCalendar">
+          <strong>+ poznámkový blok</strong>
+          <span>Kalendář pro cally, porady, poznámky a nápady.</span>
+        </button>
+      </div>
+
+      <div class="type-modal-actions">
+        <button id="cancelProjectTypeButton" class="secondary-btn">Zrušit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LARGE DETAIL EDITOR MODAL -->
+  <div id="detailEditorModal" class="modal-backdrop hidden">
+    <div class="detail-editor-modal">
+      <div class="modal-header">
+        <h3 id="detailEditorTitle">Detail</h3>
+        <button id="closeDetailEditorButton" class="close-btn">×</button>
+      </div>
+      <div class="detail-editor-body">
+        <textarea id="detailEditorText" class="detail-textarea" placeholder="Sem napiš detail, zadání, úkoly, poznámky..."></textarea>
+        <div class="detail-side">
+          <label class="primary-btn" style="display:grid; place-items:center; cursor:pointer;">
+            Přidat obrázek
+            <input id="detailImageInput" class="file-input" type="file" accept="image/*" multiple />
+          </label>
+          <div id="detailImageGrid" class="detail-image-grid"></div>
+        </div>
+      </div>
+
+      <div class="detail-editor-footer">
+        <button id="deleteDetailButton" class="danger-btn">Smazat</button>
+        <button id="saveDetailButton" class="primary-btn">Uložit</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TIMELINE ITEM MODAL -->
+  <div id="timelineItemModal" class="modal-backdrop hidden">
+    <div class="timeline-modal">
+      <div class="modal-header">
+        <h3 id="timelineModalTitle">Upravit položku</h3>
+        <button id="closeTimelineModalButton" class="close-btn">×</button>
+      </div>
+
+      <div class="timeline-modal-body">
+        <div class="timeline-field">
+          <label>Název položky / buňky</label>
+          <input id="timelineItemTitleInput" placeholder="Např. Homepage" />
+        </div>
+
+        <div class="timeline-form-grid">
+          <div class="timeline-field">
+            <label>Od kdy</label>
+            <input id="timelineItemStartInput" type="date" />
+          </div>
+
+          <div class="timeline-field">
+            <label>Do kdy</label>
+            <input id="timelineItemEndInput" type="date" />
+          </div>
+        </div>
+
+        <div class="timeline-field">
+          <label>Vybrat vlastníka</label>
+          <select id="timelineItemColorInput">
+            <option value="red">Nevybráno – Červená</option>
+            <option value="green">Karel – Zelená</option>
+            <option value="blue">Ivča – Modrá</option>
+            <option value="orange">Vláďa – Oranžová</option>
+            <option value="gray">Roman – Šedivá</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="timeline-modal-actions">
+        <button id="deleteTimelineItemButton" class="danger-btn">Smazat položku</button>
+        <button id="saveTimelineItemButton" class="primary-btn">Uložit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfExportArea"></div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+
+  <script>
+    const STORAGE_KEY = "mja_map_app_v1";
+
+    const loginScreen = document.getElementById("loginScreen");
+    const projectsScreen = document.getElementById("projectsScreen");
+    const mapScreen = document.getElementById("mapScreen");
+
+    const loginButton = document.getElementById("loginButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    const newProjectButton = document.getElementById("newProjectButton");
+    const projectGrid = document.getElementById("projectGrid");
+    const emptyProjects = document.getElementById("emptyProjects");
+
+    const backToProjectsButton = document.getElementById("backToProjectsButton");
+    const currentProjectTitle = document.getElementById("currentProjectTitle");
+    const workspace = document.getElementById("workspace");
+    const boardWrap = document.getElementById("boardWrap");
+    const connectionsSvg = document.getElementById("connections");
+
+    const addRootCardButton = document.getElementById("addRootCardButton");
+    const exportPdfButton = document.getElementById("exportPdfButton");
+    const deleteProjectButton = document.getElementById("deleteProjectButton");
+
+    const zoomOutButton = document.getElementById("zoomOutButton");
+    const zoomInButton = document.getElementById("zoomInButton");
+    const zoomResetButton = document.getElementById("zoomResetButton");
+    const fitButton = document.getElementById("fitButton");
+    const zoomValue = document.getElementById("zoomValue");
+
+    const imageModal = document.getElementById("imageModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalImage = document.getElementById("modalImage");
+    const closeModalButton = document.getElementById("closeModalButton");
+    const imageInfoSide = document.getElementById("imageInfoSide");
+    const imageDetailText = document.getElementById("imageDetailText");
+
+    const exportAllButton = document.getElementById("exportAllButton");
+    const importAllInput = document.getElementById("importAllInput");
+
+    const projectTypeModal = document.getElementById("projectTypeModal");
+    const newProjectNameInput = document.getElementById("newProjectNameInput");
+    const cancelProjectTypeButton = document.getElementById("cancelProjectTypeButton");
+
+    const detailEditorModal = document.getElementById("detailEditorModal");
+    const detailEditorTitle = document.getElementById("detailEditorTitle");
+    const closeDetailEditorButton = document.getElementById("closeDetailEditorButton");
+    const detailEditorText = document.getElementById("detailEditorText");
+    const detailImageInput = document.getElementById("detailImageInput");
+    const detailImageGrid = document.getElementById("detailImageGrid");
+    const deleteDetailButton = document.getElementById("deleteDetailButton");
+    const saveDetailButton = document.getElementById("saveDetailButton");
+
+    const timelineItemModal = document.getElementById("timelineItemModal");
+    const closeTimelineModalButton = document.getElementById("closeTimelineModalButton");
+    const timelineModalTitle = document.getElementById("timelineModalTitle");
+    const timelineItemTitleInput = document.getElementById("timelineItemTitleInput");
+    const timelineItemStartInput = document.getElementById("timelineItemStartInput");
+    const timelineItemEndInput = document.getElementById("timelineItemEndInput");
+    const timelineItemColorInput = document.getElementById("timelineItemColorInput");
+    const saveTimelineItemButton = document.getElementById("saveTimelineItemButton");
+    const deleteTimelineItemButton = document.getElementById("deleteTimelineItemButton");
+
+    const toast = document.getElementById("toast");
+    const pdfExportArea = document.getElementById("pdfExportArea");
+
+    let activeDetailNodeId = null;
+    let activeImageDetailNodeId = null;
+    let activeTimelineItem = null;
+    let activeCalendarNote = null;
+    let activeCalendarDay = null;
+
+    let app = {
+      loggedIn: false,
+      currentProjectId: null,
+      zoom: 1,
+      projects: []
+    };
+
+    const ADMIN_EMAIL = "v.antonyuk95@gmail.com";
+    let session = null;
+    let profile = null;
+
+    let selectedNodeId = null;
+
+    function generateId() {
+      return "id_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.style.display = "block";
+      setTimeout(() => toast.style.display = "none", 2200);
+    }
+
+    function estimateStoredSize(value) {
+      let size = 0;
+      const seen = new Set();
+
+      function walk(item) {
+        if (item == null) return;
+
+        const type = typeof item;
+
+        if (type === "string") {
+          size += item.length;
+          return;
+        }
+
+        if (type === "number" || type === "boolean") {
+          size += 16;
+          return;
+        }
+
+        if (type === "object") {
+          if (seen.has(item)) return;
+          seen.add(item);
+
+          if (Array.isArray(item)) {
+            item.forEach(walk);
+            return;
+          }
+
+          Object.keys(item).forEach(key => {
+            size += key.length;
+            walk(item[key]);
+          });
+        }
+      }
+
+      walk(value);
+      return size;
+    }
+
+    async function saveApp() {
+      if (!session?.user) return;
+
+      try {
+        const project = getCurrentProject();
+
+        if (project) {
+          project.updatedAt = new Date().toISOString();
+
+          const { error } = await supabaseClient
+            .from("projects")
+            .update({
+              name: project.name,
+              type: project.type,
+              data: project,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", project.id);
+
+          if (error) {
+            console.warn("Uložení projektu do Supabase selhalo:", error);
+            showToast("Uložení selhalo.");
+          }
+        }
+      } catch (error) {
+        console.warn("Uložení selhalo:", error);
+        showToast("Uložení selhalo.");
+      }
+    }
+
+    async function loadApp() {
+      app = {
+        loggedIn: false,
+        currentProjectId: null,
+        zoom: 1,
+        projects: []
+      };
+
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      session = sessionData.session;
+
+      if (!session) return;
+
+      const currentEmail = (session.user.email || "").toLowerCase();
+
+      const { data: loadedProfile, error: profileError } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (currentEmail === ADMIN_EMAIL) {
+        profile = loadedProfile || {
+          id: session.user.id,
+          email: session.user.email,
+          role: "admin",
+          status: "approved"
+        };
+      } else {
+        profile = loadedProfile;
+
+        if (profileError || !profile || profile.status !== "approved") {
+          app.loggedIn = true;
+          app.waitingForApproval = true;
+          return;
+        }
+      }
+
+      const { data: rows, error } = await supabaseClient
+        .from("projects")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        console.warn("Načtení projektů selhalo:", error);
+        showToast("Načtení projektů selhalo.");
+        return;
+      }
+
+      app.loggedIn = true;
+      app.waitingForApproval = false;
+      app.projects = (rows || []).map(row => {
+        const project = row.data || {};
+        project.id = row.id;
+        project.name = row.name || project.name || "Projekt";
+        project.type = row.type || project.type || "imageMap";
+        return project;
+      });
+    }
+
+    function showScreen(screenName) {
+      loginScreen.classList.add("hidden");
+      projectsScreen.classList.add("hidden");
+      mapScreen.classList.add("hidden");
+
+      if (screenName === "login") loginScreen.classList.remove("hidden");
+      if (screenName === "projects") projectsScreen.classList.remove("hidden");
+      if (screenName === "map") mapScreen.classList.remove("hidden");
+    }
+
+    function getCurrentProject() {
+      return app.projects.find(project => project.id === app.currentProjectId) || null;
+    }
+
+    function createStarterProject(name, type = "imageMap") {
+      const projectId = generateId();
+      const rootId = generateId();
+
+      const commonProject = {
+        id: projectId,
+        name,
+        type,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        edges: []
+      };
+
+      if (type === "pavojk") {
+        return {
+          ...commonProject,
+          nodes: [
+            {
+              id: rootId,
+              title: name || "MY JOBS AGENT",
+              titleColor: "green",
+              detail: "",
+              detailImages: [],
+              notes: [],
+              x: 2200,
+              y: 720
+            }
+          ]
+        };
+      }
+
+      if (type === "timeline") {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
+        return {
+          ...commonProject,
+          timelineStart: toDateInputValue(today),
+          timelineDays: daysUntilEndOfYear(toDateInputValue(today)),
+          rows: [
+            {
+              id: generateId(),
+              name: "Homepage",
+              items: []
+            },
+            {
+              id: generateId(),
+              name: "Stránka",
+              items: []
+            }
+          ],
+          nodes: []
+        };
+      }
+
+      if (type === "notesCalendar") {
+        const today = new Date();
+
+        return {
+          ...commonProject,
+          calendarYear: today.getFullYear(),
+          calendarMonth: today.getMonth(),
+          notes: [],
+          nodes: []
+        };
+      }
+
+      return {
+        ...commonProject,
+        nodes: [
+          {
+            id: rootId,
+            title: "Homepage",
+            titleColor: "green",
+            detail: "",
+            detailImages: [],
+            notes: [],
+            image: null,
+            x: 2100,
+            y: 720
+          }
+        ]
+      };
+    }
+
+    function renderProjects() {
+      const groups = [
+        {
+          key: "imageMap",
+          title: "Obrázková mapa",
+          subtitle: "Mapování webu pomocí screenshotů"
+        },
+        {
+          key: "pavojk",
+          title: "Pavojk",
+          subtitle: "Jednoduché buňky a větvení bez obrázků"
+        },
+        {
+          key: "timeline",
+          title: "Časová osa",
+          subtitle: "Plán kroků a termínů v čase"
+        },
+        {
+          key: "notesCalendar",
+          title: "Poznámkový blok",
+          subtitle: "Cally, porady, nápady a zápisy v kalendáři"
+        }
+      ];
+
+      emptyProjects.classList.toggle("hidden", app.projects.length > 0);
+
+      projectGrid.innerHTML = groups.map(group => {
+        const items = app.projects.filter(project => project.type === group.key);
+
+        const cards = items.length
+          ? items.map(project => {
+              const meta = getProjectMeta(project);
+
+              return `
+                <article class="project-card" data-project-id="${project.id}">
+                  <div>
+                    <h3>${escapeHtml(project.name)}</h3>
+                    <div class="project-meta">${meta}</div>
+                  </div>
+                </article>
+              `;
+            }).join("")
+          : `<div class="column-empty">Zatím tu není žádný projekt.</div>`;
+
+        return `
+          <section class="project-column">
+            <h2 class="project-column-title">${group.title}</h2>
+            <div class="project-column-subtitle">${group.subtitle}</div>
+            <div class="project-column-list">${cards}</div>
+          </section>
+        `;
+      }).join("");
+
+      projectGrid.querySelectorAll(".project-card").forEach(card => {
+        card.addEventListener("click", event => {
+          openProjectFromCard(card, event);
+        });
+      });
+    }
+
+    function openProjectFromCard(card, event) {
+      if (event) {
+        event.preventDefault();
+      }
+
+      const projectId = card?.dataset?.projectId;
+      if (!projectId) return;
+
+      const project = app.projects.find(item => item.id === projectId);
+      if (!project) return;
+
+      app.currentProjectId = projectId;
+      openCurrentProject();
+
+      try {
+        saveApp();
+      } catch (error) {
+        console.warn("Uložení při otevření projektu selhalo:", error);
+      }
+    }
+
+
+    function getProjectMeta(project) {
+      if (project.type === "timeline") {
+        const rows = Array.isArray(project.rows) ? project.rows.length : 0;
+        const items = Array.isArray(project.rows)
+          ? project.rows.reduce((sum, row) => sum + ((row.items || []).length), 0)
+          : 0;
+
+        return `${rows} řádků · ${items} položek<br />Klikni pro otevření projektu`;
+      }
+
+      if (project.type === "notesCalendar") {
+        const notes = Array.isArray(project.notes) ? project.notes.length : 0;
+        return `${notes} poznámek<br />Klikni pro otevření projektu`;
+      }
+
+      const nodes = Array.isArray(project.nodes) ? project.nodes.length : 0;
+      const edges = Array.isArray(project.edges) ? project.edges.length : 0;
+      return `${nodes} karet · ${edges} propojení<br />Klikni pro otevření projektu`;
+    }
+
+    function openCurrentProject() {
+      const project = getCurrentProject();
+
+      if (!project) {
+        showScreen("projects");
+        renderProjects();
+        return;
+      }
+
+      currentProjectTitle.textContent = project.name;
+
+      if (project.type === "timeline" || project.type === "notesCalendar") {
+        app.zoom = 1;
+      } else {
+        app.zoom = app.zoom || 1;
+      }
+
+      applyZoom();
+      renderMap();
+      showScreen("map");
+
+      setTimeout(() => {
+        if (project.type === "timeline" || project.type === "notesCalendar") {
+          workspace.scrollLeft = 0;
+          workspace.scrollTop = 0;
+        } else {
+          workspace.scrollLeft = 1650;
+          workspace.scrollTop = 380;
+        }
+      }, 0);
+    }
+
+    function getApprovalColor(approvals) {
+      const values = approvals || {};
+      const count = ["karel", "ivca", "vlada"].filter(person => values[person]).length;
+
+      if (count === 3) return "green";
+      if (count >= 1) return "orange";
+      return "red";
+    }
+
+    function ensureImageMapApprovals(node, project) {
+      if (project?.type !== "imageMap") return;
+
+      if (!node.approvals || typeof node.approvals !== "object") {
+        node.approvals = {
+          karel: false,
+          ivca: false,
+          vlada: false
+        };
+      }
+
+      node.titleColor = getApprovalColor(node.approvals);
+    }
+
+    function renderMap() {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      document.querySelectorAll(".node").forEach(el => el.remove());
+      document.querySelectorAll(".timeline-board").forEach(el => el.remove());
+      document.querySelectorAll(".timeline-placeholder").forEach(el => el.remove());
+      document.querySelectorAll(".notes-calendar").forEach(el => el.remove());
+
+      if (project.type === "timeline") {
+        renderTimelineProject(project);
+
+        try {
+          saveApp();
+        } catch (error) {
+          console.warn("Uložení časové osy selhalo:", error);
+        }
+
+        return;
+      }
+
+      if (project.type === "notesCalendar") {
+        renderNotesCalendar(project);
+
+        try {
+          saveApp();
+        } catch (error) {
+          console.warn("Uložení poznámkového bloku selhalo:", error);
+        }
+
+        return;
+      }
+
+      project.nodes.forEach(node => {
+        ensureImageMapApprovals(node, project);
+
+        if (!Array.isArray(node.notes)) {
+          node.notes = node.comment ? [{
+            id: generateId(),
+            email: "import@local",
+            text: node.comment,
+            createdAt: new Date().toISOString()
+          }] : [];
+          delete node.comment;
+        }
+
+        if (typeof node.detail !== "string") {
+          node.detail = "";
+        }
+
+        if (!Array.isArray(node.detailImages)) {
+          node.detailImages = [];
+        }
+
+        const el = document.createElement("div");
+        el.className = project.type === "pavojk" ? "node pavojk-node" : "node";
+        el.dataset.id = node.id;
+        el.style.left = node.x + "px";
+        el.style.top = node.y + "px";
+
+        if (selectedNodeId === node.id) {
+          el.classList.add("selected");
+        }
+
+        const notesCount = Array.isArray(node.notes) ? node.notes.length : 0;
+
+        if (project.type === "pavojk") {
+          el.innerHTML = `
+            <div class="pavojk-colors">
+              <button class="compact-dot dot-green ${node.titleColor === "green" ? "active" : ""}" data-color="green" title="Zelená"></button>
+              <button class="compact-dot dot-orange ${node.titleColor === "orange" ? "active" : ""}" data-color="orange" title="Oranžová"></button>
+              <button class="compact-dot dot-red ${node.titleColor === "red" ? "active" : ""}" data-color="red" title="Červená"></button>
+            </div>
+
+            <input class="pavojk-title" value="${escapeHtml(node.title || "Nová buňka")}" placeholder="Název" />
+
+            <button class="bulb-button ${notesCount > 0 ? "has-notes" : ""}" data-count="${notesCount}" title="Poznámky">💡</button>
+            <button class="pavojk-detail-btn">Detail</button>
+            <button class="add-branch" title="Přidat větev">+</button>
+            <button class="delete-card-x" title="Smazat buňku">×</button>
+
+            <div class="notes-panel hidden-panel">
+              <div class="notes-header">
+                💡 <span>Poznámky</span>
+                <button class="notes-close">×</button>
+              </div>
+              <div class="notes-list"></div>
+              <div class="notes-form">
+                <input class="note-email" type="email" placeholder="Tvůj email" value="${escapeHtml(document.getElementById("loginEmail").value || "")}" />
+                <textarea class="note-text" placeholder="Napiš poznámku..."></textarea>
+                <button class="primary-btn add-note-btn" style="height:44px;">Odeslat poznámku</button>
+              </div>
+            </div>
+
+            <div class="connector-dot left"></div>
+            <div class="connector-dot right"></div>
+            <div class="connector-dot bottom"></div>
+          `;
+
+          el.classList.add(`title-${escapeHtml(node.titleColor || "green")}`);
+          boardWrap.appendChild(el);
+          attachNodeEvents(el, node.id);
+          return;
+        }
+
+        el.innerHTML = `
+          <div class="node-top title-${escapeHtml(node.titleColor || "green")}">
+            <input class="title-input" value="${escapeHtml(node.title || "Nová stránka")}" placeholder="Název karty" />
+
+            <div class="approval-row">
+              <button class="approval-main-btn" title="Schválení">👍</button>
+              <div class="approval-popover hidden-panel">
+                <div class="approval-person">
+                  <span>Karel</span>
+                  <button class="approval-thumb ${node.approvals?.karel ? "active" : ""}" data-person="karel" title="Karel">👍</button>
+                </div>
+                <div class="approval-person">
+                  <span>Ivča</span>
+                  <button class="approval-thumb ${node.approvals?.ivca ? "active" : ""}" data-person="ivca" title="Ivča">👍</button>
+                </div>
+                <div class="approval-person">
+                  <span>Vláďa</span>
+                  <button class="approval-thumb ${node.approvals?.vlada ? "active" : ""}" data-person="vlada" title="Vláďa">👍</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="bulb-button ${notesCount > 0 ? "has-notes" : ""}" data-count="${notesCount}" title="Poznámky">💡</button>
+          </div>
+
+          <div class="image-area">
+            ${
+              node.image
+                ? `<img src="${node.image}" alt="${escapeHtml(node.title)}" />`
+                : `<div class="no-image">Zatím není nahraný obrázek<br />Klikni na „Nahrát“</div>`
+            }
+          </div>
+
+          <div class="node-actions">
+            <div class="detail-row">
+              <input class="detail-input" value="${escapeHtml(node.detail || "")}" placeholder="Detail / krátký popis" />
+            </div>
+
+            <div class="node-button-row">
+              <label class="mini-btn" style="display:grid; place-items:center; cursor:pointer;">
+                Nahrát
+                <input class="file-input upload-input" type="file" accept="image/*" />
+              </label>
+              <button class="mini-btn detail-btn">Detail obrázku</button>
+            </div>
+          </div>
+
+          <div class="notes-panel hidden-panel">
+            <div class="notes-header">
+              💡 <span>Poznámky</span>
+              <button class="notes-close">×</button>
+            </div>
+            <div class="notes-list"></div>
+            <div class="notes-form">
+              <input class="note-email" type="email" placeholder="Tvůj email" value="${escapeHtml(document.getElementById("loginEmail").value || "")}" />
+              <textarea class="note-text" placeholder="Napiš poznámku..."></textarea>
+              <button class="primary-btn add-note-btn" style="height:44px;">Odeslat poznámku</button>
+            </div>
+          </div>
+
+          <button class="add-branch" title="Přidat větev">+</button>
+          <button class="delete-card-x" title="Smazat kartu">×</button>
+
+          <div class="connector-dot left"></div>
+          <div class="connector-dot right"></div>
+          <div class="connector-dot bottom"></div>
+        `;
+
+        boardWrap.appendChild(el);
+        attachNodeEvents(el, node.id);
+      });
+
+      renderConnections();
+      saveApp();
+    }
+
+
+    async function sendTelegramCommentNotification({ projectName, cardTitle, email, text }) {
+      try {
+        await fetch("/api/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectName,
+            cardTitle,
+            email,
+            text,
+            url: window.location.href
+          })
+        });
+      } catch (error) {
+        console.warn("Telegram upozornění se nepodařilo odeslat:", error);
+      }
+    }
+
+    function attachNodeEvents(el, nodeId) {
+      const project = getCurrentProject();
+      const node = project.nodes.find(item => item.id === nodeId);
+
+      const titleInput = el.querySelector(".title-input") || el.querySelector(".pavojk-title");
+      const detailInput = el.querySelector(".detail-input");
+      const uploadInput = el.querySelector(".upload-input");
+      const addBranchButton = el.querySelector(".add-branch");
+      const detailButton = el.querySelector(".detail-btn") || el.querySelector(".pavojk-detail-btn");
+      const deleteCardXButton = el.querySelector(".delete-card-x");
+      const bulbButton = el.querySelector(".bulb-button");
+      const notesPanel = el.querySelector(".notes-panel");
+      const notesCloseButton = el.querySelector(".notes-close");
+      const addNoteButton = el.querySelector(".add-note-btn");
+      const noteEmailInput = el.querySelector(".note-email");
+      const noteTextInput = el.querySelector(".note-text");
+
+      renderNodeNotes(el, node);
+
+      el.addEventListener("mousedown", () => {
+        selectedNodeId = nodeId;
+        document.querySelectorAll(".node").forEach(item => item.classList.remove("selected"));
+        el.classList.add("selected");
+      });
+
+      titleInput.addEventListener("input", () => {
+        node.title = titleInput.value;
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+      });
+
+      if (detailInput) {
+        detailInput.addEventListener("input", () => {
+          node.detail = detailInput.value;
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+        });
+      }
+
+      if (uploadInput) {
+        uploadInput.addEventListener("change", event => {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+
+          reader.onload = () => {
+            node.image = reader.result;
+            project.updatedAt = new Date().toISOString();
+
+            const imageArea = el.querySelector(".image-area");
+            if (imageArea) {
+              imageArea.innerHTML = `<img src="${node.image}" alt="${escapeHtml(node.title || "")}" />`;
+            }
+
+            uploadInput.value = "";
+
+            try {
+              saveApp();
+            } catch (error) {
+              console.warn("Uložení do prohlížeče selhalo:", error);
+            }
+
+            showToast("Obrázek nahrán.");
+          };
+
+          reader.readAsDataURL(file);
+        });
+      }
+
+      el.querySelectorAll(".compact-dot").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          node.titleColor = button.dataset.color;
+          project.updatedAt = new Date().toISOString();
+          renderMap();
+          showToast("Barva změněna.");
+        });
+      });
+
+      const approvalMainButton = el.querySelector(".approval-main-btn");
+      const approvalPopover = el.querySelector(".approval-popover");
+
+      if (approvalMainButton && approvalPopover) {
+        approvalMainButton.addEventListener("click", event => {
+          event.stopPropagation();
+          approvalPopover.classList.toggle("hidden-panel");
+        });
+
+        el.querySelectorAll(".approval-thumb").forEach(button => {
+          button.addEventListener("click", event => {
+            event.stopPropagation();
+
+            if (!node.approvals || typeof node.approvals !== "object") {
+              node.approvals = {
+                karel: false,
+                ivca: false,
+                vlada: false
+              };
+            }
+
+            const person = button.dataset.person;
+            node.approvals[person] = !node.approvals[person];
+            node.titleColor = getApprovalColor(node.approvals);
+
+            project.updatedAt = new Date().toISOString();
+            renderMap();
+          });
+        });
+      }
+
+      addBranchButton.addEventListener("click", event => {
+        event.stopPropagation();
+        addBranch(nodeId);
+      });
+
+      detailButton.addEventListener("click", event => {
+        event.stopPropagation();
+
+        if (project.type === "pavojk" || project.type === "timeline") {
+          openLargeDetailEditor(nodeId);
+        } else {
+          openImageDetail(nodeId);
+        }
+      });
+
+      deleteCardXButton.addEventListener("click", event => {
+        event.stopPropagation();
+        deleteNode(nodeId);
+      });
+
+      bulbButton.addEventListener("click", event => {
+        event.stopPropagation();
+
+        const willOpen = notesPanel.classList.contains("hidden-panel");
+
+        document.querySelectorAll(".node.notes-open").forEach(nodeElement => {
+          nodeElement.classList.remove("notes-open");
+          const panel = nodeElement.querySelector(".notes-panel");
+          if (panel) panel.classList.add("hidden-panel");
+        });
+
+        if (willOpen) {
+          notesPanel.classList.remove("hidden-panel");
+          el.classList.add("notes-open");
+        } else {
+          notesPanel.classList.add("hidden-panel");
+          el.classList.remove("notes-open");
+        }
+      });
+
+      notesCloseButton.addEventListener("click", event => {
+        event.stopPropagation();
+        notesPanel.classList.add("hidden-panel");
+        el.classList.remove("notes-open");
+      });
+
+      addNoteButton.addEventListener("click", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const email = noteEmailInput.value.trim();
+        const text = noteTextInput.value.trim();
+
+        if (!email || !text) {
+          showToast("Vyplň email i poznámku.");
+          return;
+        }
+
+        const currentProject = getCurrentProject();
+        const currentNode = currentProject?.nodes?.find(item => item.id === nodeId);
+
+        if (!currentProject || !currentNode) {
+          showToast("Kartu se nepodařilo najít.");
+          return;
+        }
+
+        if (!Array.isArray(currentNode.notes)) {
+          currentNode.notes = [];
+        }
+
+        currentNode.notes.push({
+          id: generateId(),
+          email,
+          text,
+          createdAt: new Date().toISOString()
+        });
+
+        noteTextInput.value = "";
+        currentProject.updatedAt = new Date().toISOString();
+
+        try {
+          saveApp();
+        } catch (error) {
+          console.warn("Uložení poznámky selhalo:", error);
+        }
+
+        await sendTelegramCommentNotification({
+          projectName: currentProject.title || currentProject.name || "Bez názvu",
+          cardTitle: currentNode.title || "Bez názvu karty",
+          email,
+          text
+        });
+
+        renderNodeNotes(el, currentNode);
+
+        const notesCount = currentNode.notes.length;
+        bulbButton.dataset.count = notesCount;
+        bulbButton.classList.toggle("has-notes", notesCount > 0);
+        notesPanel.classList.remove("hidden-panel");
+        el.classList.add("notes-open");
+
+        showToast("Poznámka přidána.");
+      });
+
+      setupDragging(el, nodeId);
+    }
+
+    function setupDragging(el, nodeId) {
+      let isDragging = false;
+      let startMouseX = 0;
+      let startMouseY = 0;
+      let startNodeX = 0;
+      let startNodeY = 0;
+
+      el.addEventListener("mousedown", event => {
+        const tag = event.target.tagName;
+        const isInteractive = ["INPUT", "TEXTAREA", "BUTTON", "SELECT", "LABEL"].includes(tag);
+        const isInsideNotes = event.target.closest(".notes-panel");
+        const isInsideApproval = event.target.closest(".approval-popover") || event.target.closest(".approval-main-btn");
+
+        if (isInteractive || isInsideNotes || isInsideApproval) return;
+
+        event.preventDefault();
+
+        const project = getCurrentProject();
+        const node = project.nodes.find(item => item.id === nodeId);
+
+        isDragging = true;
+        selectedNodeId = nodeId;
+        startMouseX = event.clientX;
+        startMouseY = event.clientY;
+        startNodeX = node.x;
+        startNodeY = node.y;
+
+        document.body.style.cursor = "grabbing";
+      });
+
+      window.addEventListener("mousemove", event => {
+        if (!isDragging) return;
+
+        const project = getCurrentProject();
+        const node = project.nodes.find(item => item.id === nodeId);
+        const zoom = app.zoom || 1;
+
+        const deltaX = (event.clientX - startMouseX) / zoom;
+        const deltaY = (event.clientY - startMouseY) / zoom;
+
+        node.x = Math.round(startNodeX + deltaX);
+        node.y = Math.round(startNodeY + deltaY);
+
+        el.style.left = node.x + "px";
+        el.style.top = node.y + "px";
+
+        renderConnections();
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (!isDragging) return;
+
+        isDragging = false;
+        document.body.style.cursor = "";
+
+        const project = getCurrentProject();
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+      });
+    }
+
+    function renderNotesCalendar(project) {
+      if (!Array.isArray(project.notes)) {
+        project.notes = [];
+      }
+
+      if (typeof project.calendarYear !== "number" || typeof project.calendarMonth !== "number") {
+        const today = new Date();
+        project.calendarYear = today.getFullYear();
+        project.calendarMonth = today.getMonth();
+      }
+
+      const calendar = document.createElement("div");
+      calendar.className = "notes-calendar";
+
+      const monthName = new Date(project.calendarYear, project.calendarMonth, 1).toLocaleDateString("cs-CZ", {
+        month: "long",
+        year: "numeric"
+      });
+
+      const daysHtml = buildCalendarDays(project);
+
+      calendar.innerHTML = `
+        <div class="calendar-toolbar">
+          <button class="calendar-nav-btn calendar-prev-month">‹</button>
+          <button class="calendar-nav-btn calendar-next-month">›</button>
+          <h2>${escapeHtml(monthName)}</h2>
+          <button class="secondary-btn calendar-today-btn">Dnes</button>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="calendar-weekday">Po</div>
+          <div class="calendar-weekday">Út</div>
+          <div class="calendar-weekday">St</div>
+          <div class="calendar-weekday">Čt</div>
+          <div class="calendar-weekday">Pá</div>
+          <div class="calendar-weekday">So</div>
+          <div class="calendar-weekday">Ne</div>
+          ${daysHtml}
+        </div>
+      `;
+
+      boardWrap.appendChild(calendar);
+      attachCalendarEvents(calendar, project);
+    }
+
+    function buildCalendarDays(project) {
+      const first = new Date(project.calendarYear, project.calendarMonth, 1);
+      const firstDay = (first.getDay() + 6) % 7;
+      const start = new Date(project.calendarYear, project.calendarMonth, 1 - firstDay);
+
+      return Array.from({ length: 42 }, (_, index) => {
+        const date = new Date(start);
+        date.setDate(start.getDate() + index);
+
+        const dateValue = toDateInputValue(date);
+        const isOther = date.getMonth() !== project.calendarMonth;
+        const notes = project.notes.filter(note => note.date === dateValue);
+
+        const notesHtml = notes.map(note => `
+          <div class="calendar-note" data-note-id="${note.id}" title="Dvojklikem otevřeš detail">
+            ${escapeHtml(note.title || "Nová poznámka")}
+            <small>${escapeHtml(dateValue)}</small>
+          </div>
+        `).join("");
+
+        return `
+          <div class="calendar-day ${isOther ? "other-month" : ""}" data-date="${dateValue}">
+            <div class="calendar-day-header">
+              <div class="calendar-day-number">${date.getDate()}</div>
+              <button class="calendar-add-note" title="Přidat poznámku">+</button>
+            </div>
+            ${notesHtml}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function attachCalendarEvents(calendar, project) {
+      calendar.querySelector(".calendar-prev-month").addEventListener("click", () => {
+        project.calendarMonth -= 1;
+        if (project.calendarMonth < 0) {
+          project.calendarMonth = 11;
+          project.calendarYear -= 1;
+        }
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        renderMap();
+      });
+
+      calendar.querySelector(".calendar-next-month").addEventListener("click", () => {
+        project.calendarMonth += 1;
+        if (project.calendarMonth > 11) {
+          project.calendarMonth = 0;
+          project.calendarYear += 1;
+        }
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        renderMap();
+      });
+
+      calendar.querySelector(".calendar-today-btn").addEventListener("click", () => {
+        const today = new Date();
+        project.calendarYear = today.getFullYear();
+        project.calendarMonth = today.getMonth();
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        renderMap();
+      });
+
+      calendar.querySelectorAll(".calendar-add-note").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+
+          const day = button.closest(".calendar-day");
+          const date = day.dataset.date;
+
+          const note = {
+            id: generateId(),
+            date,
+            title: "Nová poznámka",
+            detail: "",
+            detailImages: []
+          };
+
+          project.notes.push(note);
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+          renderMap();
+          openCalendarNoteDetail(note.id);
+        });
+      });
+
+      calendar.querySelectorAll(".calendar-day").forEach(dayElement => {
+        dayElement.addEventListener("dblclick", event => {
+          if (event.target.closest(".calendar-note") || event.target.closest("button")) return;
+          openCalendarDayDetail(dayElement.dataset.date);
+        });
+      });
+
+      calendar.querySelectorAll(".calendar-note").forEach(noteElement => {
+        noteElement.addEventListener("dblclick", event => {
+          event.stopPropagation();
+          openCalendarNoteDetail(noteElement.dataset.noteId);
+        });
+      });
+    }
+
+    function openCalendarDayDetail(dateValue) {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      if (!project.dayDetails) {
+        project.dayDetails = {};
+      }
+
+      if (!project.dayDetails[dateValue]) {
+        project.dayDetails[dateValue] = {
+          title: "Detail dne " + formatTimelineDate(dateValue),
+          detail: "",
+          detailImages: []
+        };
+      }
+
+      const dayDetail = project.dayDetails[dateValue];
+
+      activeCalendarDay = { date: dateValue };
+      activeCalendarNote = null;
+      activeDetailNodeId = null;
+
+      detailEditorTitle.textContent = dayDetail.title || ("Detail dne " + formatTimelineDate(dateValue));
+      detailEditorText.value = dayDetail.detail || "";
+      renderSharedDetailImages(dayDetail);
+      detailEditorModal.classList.remove("hidden");
+
+      const existingTitleInput = document.getElementById("calendarNoteTitleInput");
+      if (existingTitleInput) existingTitleInput.remove();
+
+      const titleInput = document.createElement("input");
+      titleInput.id = "calendarNoteTitleInput";
+      titleInput.className = "type-name-input";
+      titleInput.style.margin = "0 22px 0";
+      titleInput.value = dayDetail.title || "";
+      titleInput.placeholder = "Název detailu dne";
+
+      const body = detailEditorModal.querySelector(".detail-editor-body");
+      detailEditorModal.querySelector(".detail-editor-modal").insertBefore(titleInput, body);
+
+      titleInput.addEventListener("input", () => {
+        dayDetail.title = titleInput.value;
+        detailEditorTitle.textContent = dayDetail.title || ("Detail dne " + formatTimelineDate(dateValue));
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+      });
+    }
+
+    function openCalendarNoteDetail(noteId) {
+      const project = getCurrentProject();
+      const note = project?.notes?.find(item => item.id === noteId);
+      if (!project || !note) return;
+
+      activeCalendarNote = { noteId };
+      activeDetailNodeId = null;
+
+      detailEditorTitle.textContent = "Poznámka – " + (note.title || "Nová poznámka");
+      detailEditorText.value = note.detail || "";
+      renderSharedDetailImages(note);
+      detailEditorModal.classList.remove("hidden");
+
+      const existingTitleInput = document.getElementById("calendarNoteTitleInput");
+      if (existingTitleInput) existingTitleInput.remove();
+
+      const titleInput = document.createElement("input");
+      titleInput.id = "calendarNoteTitleInput";
+      titleInput.className = "type-name-input";
+      titleInput.style.margin = "0 22px 0";
+      titleInput.value = note.title || "";
+      titleInput.placeholder = "Název poznámky";
+
+      const body = detailEditorModal.querySelector(".detail-editor-body");
+      detailEditorModal.querySelector(".detail-editor-modal").insertBefore(titleInput, body);
+
+      titleInput.addEventListener("input", () => {
+        note.title = titleInput.value;
+        detailEditorTitle.textContent = "Poznámka – " + (note.title || "Nová poznámka");
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+      });
+    }
+
+    function renderSharedDetailImages(target) {
+      const images = Array.isArray(target.detailImages) ? target.detailImages : [];
+
+      if (images.length === 0) {
+        detailImageGrid.innerHTML = `<div style="color:#64748b;font-size:14px;font-weight:750;text-align:center;padding:24px 10px;border:1px dashed #cbd5e1;border-radius:16px;">Zatím nejsou přidané žádné obrázky.</div>`;
+        return;
+      }
+
+      detailImageGrid.innerHTML = images.map((src, index) => `
+        <div class="detail-image-item">
+          <img src="${src}" alt="Obrázek detailu ${index + 1}" />
+          <button class="remove-detail-image" data-index="${index}">×</button>
+        </div>
+      `).join("");
+
+      detailImageGrid.querySelectorAll(".detail-image-item img").forEach((image, index) => {
+        image.addEventListener("click", () => {
+          activeImageDetailNodeId = null;
+          modalTitle.textContent = (target.title || "Detail") + " – obrázek " + (index + 1);
+          modalImage.src = image.src;
+          imageDetailText.value = "";
+          imageInfoSide.classList.add("hidden");
+          imageModal.classList.remove("hidden");
+        });
+      });
+
+      detailImageGrid.querySelectorAll(".remove-detail-image").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+
+          const index = Number(button.dataset.index);
+          target.detailImages.splice(index, 1);
+
+          const project = getCurrentProject();
+          if (project) {
+            project.updatedAt = new Date().toISOString();
+            saveApp();
+          }
+
+          renderSharedDetailImages(target);
+        });
+      });
+    }
+
+    function renderCalendarDetailImages(note) {
+      const images = Array.isArray(note.detailImages) ? note.detailImages : [];
+      if (images.length === 0) {
+        detailImageGrid.innerHTML = `<div style="color:#64748b;font-size:14px;font-weight:750;text-align:center;padding:24px 10px;border:1px dashed #cbd5e1;border-radius:16px;">Zatím nejsou přidané žádné obrázky.</div>`;
+        return;
+      }
+
+      detailImageGrid.innerHTML = images.map((src, index) => `
+        <div class="detail-image-item">
+          <img src="${src}" alt="Obrázek poznámky ${index + 1}" />
+          <button class="remove-detail-image" data-index="${index}">×</button>
+        </div>
+      `).join("");
+
+      detailImageGrid.querySelectorAll(".detail-image-item img").forEach((image, index) => {
+        image.addEventListener("click", () => {
+          activeImageDetailNodeId = null;
+          modalTitle.textContent = (note.title || "Poznámka") + " – obrázek " + (index + 1);
+          modalImage.src = image.src;
+          imageDetailText.value = "";
+          imageInfoSide.classList.add("hidden");
+          imageModal.classList.remove("hidden");
+        });
+      });
+
+      detailImageGrid.querySelectorAll(".remove-detail-image").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+
+          const project = getCurrentProject();
+          const note = project?.notes?.find(item => item.id === activeCalendarNote?.noteId);
+          if (!note) return;
+
+          const index = Number(button.dataset.index);
+          note.detailImages.splice(index, 1);
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+          renderSharedDetailImages(note);
+        });
+      });
+    }
+
+    function toDateInputValue(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function addDays(dateValue, days) {
+      const date = new Date(dateValue + "T00:00:00");
+      date.setDate(date.getDate() + days);
+      return toDateInputValue(date);
+    }
+
+    function daysUntilEndOfYear(startValue) {
+      const start = new Date(startValue + "T00:00:00");
+      const end = new Date(start.getFullYear(), 11, 31);
+      return Math.max(1, Math.round((end - start) / 86400000) + 1);
+    }
+
+    function dateDiffDays(start, end) {
+      const startDate = new Date(start + "T00:00:00");
+      const endDate = new Date(end + "T00:00:00");
+      return Math.round((endDate - startDate) / 86400000);
+    }
+
+    function formatTimelineDate(value) {
+      const date = new Date(value + "T00:00:00");
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString("cs-CZ", { day: "2-digit", month: "2-digit" });
+    }
+
+    function renderTimelineProject(project) {
+      if (!Array.isArray(project.rows)) {
+        project.rows = [];
+      }
+
+      if (!project.timelineStart) {
+        project.timelineStart = toDateInputValue(new Date());
+      }
+
+      const daysToEndOfYear = daysUntilEndOfYear(project.timelineStart);
+
+      if (!project.timelineDays || project.timelineDays < daysToEndOfYear) {
+        project.timelineDays = daysToEndOfYear;
+      }
+
+      const board = document.createElement("div");
+      board.className = "timeline-board";
+
+      const dayWidth = 46;
+      const timelineWidth = project.timelineDays * dayWidth;
+
+      const dates = Array.from({ length: project.timelineDays }, (_, index) => {
+        const dateValue = addDays(project.timelineStart, index);
+        return `<div>${formatTimelineDate(dateValue)}</div>`;
+      }).join("");
+
+      const rowsHtml = project.rows.map(row => {
+        const itemsHtml = (row.items || []).map(item => {
+          const startOffset = Math.max(0, dateDiffDays(project.timelineStart, item.start));
+          const endOffset = Math.min(project.timelineDays, dateDiffDays(project.timelineStart, item.end) + 1);
+          const duration = Math.max(1, endOffset - startOffset);
+          const left = startOffset * dayWidth;
+          const width = Math.max(42, duration * dayWidth - 8);
+
+          return `
+            <div class="timeline-item timeline-item-${escapeHtml(item.color || "red")}" 
+                 style="left:${left}px;width:${width}px;" 
+                 data-row-id="${row.id}" 
+                 data-item-id="${item.id}">
+              <span>${escapeHtml(item.title || "Položka")}</span>
+              <button class="timeline-item-edit" title="Upravit">✎</button>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="timeline-row" data-row-id="${row.id}">
+            <div class="timeline-row-label">
+              <button class="timeline-delete-row-btn" title="Smazat řádek">×</button>
+              <input class="timeline-row-name" value="${escapeHtml(row.name || "Řádek")}" />
+              <button class="timeline-edit-row-btn" title="Upravit / přidat položku">✎</button>
+            </div>
+            <div class="timeline-lane" style="width:${timelineWidth}px;">${itemsHtml}</div>
+          </div>
+        `;
+      }).join("");
+
+      board.innerHTML = `
+        <div class="timeline-content">
+          <div class="timeline-topbar" style="width:${320 + timelineWidth}px;">
+            <div class="timeline-title-cell">Časová osa</div>
+            <div class="timeline-dates" style="width:${timelineWidth}px;">${dates}</div>
+          </div>
+          ${rowsHtml}
+          <button class="timeline-add-row-global">+ Přidat řádek</button>
+        </div>
+      `;
+
+      boardWrap.appendChild(board);
+      attachTimelineEvents(board, project);
+    }
+
+    function attachTimelineEvents(board, project) {
+      board.querySelector(".timeline-add-row-global").addEventListener("click", () => {
+        project.rows.push({
+          id: generateId(),
+          name: "Nový řádek",
+          items: []
+        });
+        project.updatedAt = new Date().toISOString();
+        renderMap();
+        showToast("Řádek přidán.");
+      });
+
+      board.querySelectorAll(".timeline-row").forEach(rowElement => {
+        const rowId = rowElement.dataset.rowId;
+        const row = project.rows.find(item => item.id === rowId);
+        if (!row) return;
+
+        const nameInput = rowElement.querySelector(".timeline-row-name");
+
+        nameInput.addEventListener("input", () => {
+          row.name = nameInput.value;
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+        });
+
+        rowElement.querySelector(".timeline-delete-row-btn").addEventListener("click", () => {
+          const confirmed = confirm(`Opravdu smazat řádek „${row.name || "Řádek"}“ včetně všech položek?`);
+          if (!confirmed) return;
+
+          project.rows = project.rows.filter(item => item.id !== row.id);
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+          renderMap();
+          showToast("Řádek smazán.");
+        });
+
+        rowElement.querySelector(".timeline-edit-row-btn").addEventListener("click", () => {
+          if (!Array.isArray(row.items)) {
+            row.items = [];
+          }
+
+          if (row.items.length === 0) {
+            const start = project.timelineStart;
+            const end = addDays(start, 1);
+
+            row.items.push({
+              id: generateId(),
+              title: row.name || "Nová položka",
+              start,
+              end,
+              color: "red"
+            });
+
+            project.updatedAt = new Date().toISOString();
+            saveApp();
+          }
+
+          openTimelineItemModal(row.id, row.items[0].id);
+        });
+      });
+
+      board.querySelectorAll(".timeline-item").forEach(itemElement => {
+        itemElement.addEventListener("click", event => {
+          event.stopPropagation();
+          openTimelineItemModal(itemElement.dataset.rowId, itemElement.dataset.itemId);
+        });
+      });
+    }
+
+    function openTimelineItemModal(rowId, itemId) {
+      const project = getCurrentProject();
+      const row = project?.rows?.find(item => item.id === rowId);
+      const item = row?.items?.find(entry => entry.id === itemId);
+      if (!project || !row || !item) return;
+
+      activeTimelineItem = { rowId, itemId };
+      timelineModalTitle.textContent = "Upravit položku – " + (row.name || "řádek");
+      timelineItemTitleInput.value = item.title || "";
+      timelineItemStartInput.value = item.start || project.timelineStart;
+      timelineItemEndInput.value = item.end || item.start || project.timelineStart;
+      timelineItemColorInput.value = item.color || "red";
+      timelineItemModal.classList.remove("hidden");
+    }
+
+    function closeTimelineItemModal() {
+      activeTimelineItem = null;
+      activeCalendarNote = null;
+      timelineItemModal.classList.add("hidden");
+    }
+
+    function saveTimelineItem() {
+      const project = getCurrentProject();
+      const row = project?.rows?.find(item => item.id === activeTimelineItem?.rowId);
+      const item = row?.items?.find(entry => entry.id === activeTimelineItem?.itemId);
+      if (!project || !row || !item) return;
+
+      const start = timelineItemStartInput.value;
+      const end = timelineItemEndInput.value;
+
+      if (!start || !end) {
+        showToast("Vyplň datum od i do.");
+        return;
+      }
+
+      if (new Date(end) < new Date(start)) {
+        showToast("Datum do nemůže být před datem od.");
+        return;
+      }
+
+      item.title = timelineItemTitleInput.value.trim() || "Položka";
+      item.start = start;
+      item.end = end;
+      item.color = timelineItemColorInput.value;
+
+      const offset = dateDiffDays(project.timelineStart, start);
+      if (offset < 0) {
+        project.timelineStart = start;
+      }
+
+      const endOffset = dateDiffDays(project.timelineStart, end);
+      if (endOffset >= project.timelineDays) {
+        project.timelineDays = endOffset + 2;
+      }
+
+      project.updatedAt = new Date().toISOString();
+      saveApp();
+      closeTimelineItemModal();
+      renderMap();
+      showToast("Položka uložena.");
+    }
+
+    function deleteTimelineItem() {
+      const project = getCurrentProject();
+      const row = project?.rows?.find(item => item.id === activeTimelineItem?.rowId);
+      if (!project || !row) return;
+
+      row.items = row.items.filter(item => item.id !== activeTimelineItem.itemId);
+      project.updatedAt = new Date().toISOString();
+      saveApp();
+      closeTimelineItemModal();
+      renderMap();
+      showToast("Položka smazána.");
+    }
+
+    function renderNodeNotes(el, node) {
+      const list = el.querySelector(".notes-list");
+      if (!list) return;
+
+      const notes = Array.isArray(node.notes) ? node.notes : [];
+
+      if (notes.length === 0) {
+        list.innerHTML = `<div style="color:#64748b;font-size:13px;font-weight:750;text-align:center;padding:18px 6px;">Zatím žádné poznámky.</div>`;
+        return;
+      }
+
+      list.innerHTML = notes.map(note => {
+        const initial = getInitial(note.email);
+        const date = formatShortDate(note.createdAt);
+
+        return `
+          <div class="note-bubble">
+            <div class="note-avatar">${escapeHtml(initial)}</div>
+            <div class="note-content">
+              <div class="note-meta">${escapeHtml(note.email || "")} · ${escapeHtml(date)}</div>
+              <div>${escapeHtml(note.text || "")}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function getInitial(email) {
+      const value = String(email || "").trim();
+      return value ? value[0].toUpperCase() : "?";
+    }
+
+    function formatShortDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("cs-CZ", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function addBranch(parentId) {
+      const project = getCurrentProject();
+      const parent = project.nodes.find(node => node.id === parentId);
+      if (!parent) return;
+
+      const childrenCount = project.edges.filter(edge => edge.from === parentId).length;
+      const angle = (childrenCount - 1) * 0.65;
+      const distance = 430;
+
+      const isPavojk = project.type === "pavojk" || project.type === "timeline";
+
+      const newNode = {
+        id: generateId(),
+        title: isPavojk ? "Nová buňka" : "Nová stránka",
+        titleColor: "orange",
+        detail: "",
+        detailImages: [],
+        notes: [],
+        image: isPavojk ? undefined : null,
+        x: Math.round(parent.x + Math.cos(angle) * (isPavojk ? 360 : distance)),
+        y: Math.round(parent.y + (isPavojk ? 190 : 330) + Math.sin(angle) * 160)
+      };
+
+      project.nodes.push(newNode);
+      project.edges.push({
+        id: generateId(),
+        from: parentId,
+        to: newNode.id
+      });
+
+      project.updatedAt = new Date().toISOString();
+      selectedNodeId = newNode.id;
+      renderMap();
+      showToast("Nová větev přidána.");
+    }
+
+    function addRootCard() {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      const isPavojk = project.type === "pavojk" || project.type === "timeline";
+
+      project.nodes.push({
+        id: generateId(),
+        title: isPavojk ? "Nová buňka" : "Nová hlavní karta",
+        titleColor: "green",
+        detail: "",
+        detailImages: [],
+        notes: [],
+        image: isPavojk ? undefined : null,
+        x: Math.round(1900 + Math.random() * 600),
+        y: Math.round(520 + Math.random() * 450)
+      });
+
+      project.updatedAt = new Date().toISOString();
+      renderMap();
+      showToast("Hlavní karta přidána.");
+    }
+
+    function deleteNode(nodeId) {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      const confirmed = confirm("Opravdu smazat kartu? Smažou se i její spojovací čáry.");
+      if (!confirmed) return;
+
+      project.nodes = project.nodes.filter(node => node.id !== nodeId);
+      project.edges = project.edges.filter(edge => edge.from !== nodeId && edge.to !== nodeId);
+      selectedNodeId = null;
+
+      project.updatedAt = new Date().toISOString();
+      renderMap();
+      showToast("Karta smazána.");
+    }
+
+    function renderConnections() {
+      const old = connectionsSvg.querySelectorAll(".edge-line");
+      old.forEach(line => line.remove());
+
+      const project = getCurrentProject();
+      if (!project) return;
+
+      project.edges.forEach(edge => {
+        const fromNode = project.nodes.find(node => node.id === edge.from);
+        const toNode = project.nodes.find(node => node.id === edge.to);
+
+        if (!fromNode || !toNode) return;
+
+        const fromEl = document.querySelector(`.node[data-id="${fromNode.id}"]`);
+        const toEl = document.querySelector(`.node[data-id="${toNode.id}"]`);
+
+        if (!fromEl || !toEl) return;
+
+        const fromBox = {
+          x: fromNode.x,
+          y: fromNode.y,
+          w: fromEl.offsetWidth,
+          h: fromEl.offsetHeight
+        };
+
+        const toBox = {
+          x: toNode.x,
+          y: toNode.y,
+          w: toEl.offsetWidth,
+          h: toEl.offsetHeight
+        };
+
+        const fromCenterX = fromBox.x + fromBox.w / 2;
+        const fromCenterY = fromBox.y + fromBox.h / 2;
+        const toCenterX = toBox.x + toBox.w / 2;
+        const toCenterY = toBox.y + toBox.h / 2;
+
+        let startX;
+        let startY;
+        let endX;
+        let endY;
+
+        const dx = toCenterX - fromCenterX;
+        const dy = toCenterY - fromCenterY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx >= 0) {
+            startX = fromBox.x + fromBox.w;
+            startY = fromCenterY;
+            endX = toBox.x;
+            endY = toCenterY;
+          } else {
+            startX = fromBox.x;
+            startY = fromCenterY;
+            endX = toBox.x + toBox.w;
+            endY = toCenterY;
+          }
+        } else {
+          if (dy >= 0) {
+            startX = fromCenterX;
+            startY = fromBox.y + fromBox.h;
+            endX = toCenterX;
+            endY = toBox.y;
+          } else {
+            startX = fromCenterX;
+            startY = fromBox.y;
+            endX = toCenterX;
+            endY = toBox.y + toBox.h;
+          }
+        }
+
+        const curveX = (startX + endX) / 2;
+        const curveY = (startY + endY) / 2;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.classList.add("edge-line");
+
+        const d = `M ${startX} ${startY} C ${curveX} ${startY}, ${curveX} ${endY}, ${endX} ${endY}`;
+
+        path.setAttribute("d", d);
+        path.setAttribute("stroke", "#9aa5b5");
+        path.setAttribute("stroke-width", "3");
+        path.setAttribute("fill", "none");
+        path.setAttribute("marker-end", "url(#arrow)");
+        path.setAttribute("stroke-linecap", "round");
+
+        connectionsSvg.appendChild(path);
+      });
+    }
+
+    function applyZoom() {
+      const zoom = app.zoom || 1;
+      boardWrap.style.transform = `scale(${zoom})`;
+      zoomValue.textContent = Math.round(zoom * 100) + "%";
+      saveApp();
+    }
+
+    function zoomBy(delta) {
+      app.zoom = Math.min(2.2, Math.max(0.25, (app.zoom || 1) + delta));
+      applyZoom();
+    }
+
+    function resetZoom() {
+      app.zoom = 1;
+      applyZoom();
+    }
+
+    function fitToContent() {
+      const project = getCurrentProject();
+      if (!project || project.nodes.length === 0) return;
+
+      const xs = project.nodes.map(n => n.x);
+      const ys = project.nodes.map(n => n.y);
+
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs) + 340;
+      const maxY = Math.max(...ys) + 410;
+
+      const contentWidth = maxX - minX;
+      const contentHeight = maxY - minY;
+
+      const zoomX = (workspace.clientWidth - 90) / contentWidth;
+      const zoomY = (workspace.clientHeight - 90) / contentHeight;
+
+      app.zoom = Math.min(1, Math.max(0.25, Math.min(zoomX, zoomY)));
+      applyZoom();
+
+      workspace.scrollLeft = Math.max(0, minX * app.zoom - 45);
+      workspace.scrollTop = Math.max(0, minY * app.zoom - 45);
+    }
+
+    function openLargeDetailEditor(nodeId) {
+      const project = getCurrentProject();
+      const node = project?.nodes.find(item => item.id === nodeId);
+      if (!node) return;
+
+      activeDetailNodeId = nodeId;
+      detailEditorTitle.textContent = "Detail – " + (node.title || "bez názvu");
+      detailEditorText.value = node.detail || "";
+      renderDetailImages(node);
+      detailEditorModal.classList.remove("hidden");
+    }
+
+    function renderDetailImages(node) {
+      const images = Array.isArray(node.detailImages) ? node.detailImages : [];
+      if (images.length === 0) {
+        detailImageGrid.innerHTML = `<div style="color:#64748b;font-size:14px;font-weight:750;text-align:center;padding:24px 10px;border:1px dashed #cbd5e1;border-radius:16px;">Zatím nejsou přidané žádné obrázky.</div>`;
+        return;
+      }
+
+      detailImageGrid.innerHTML = images.map((src, index) => `
+        <div class="detail-image-item">
+          <img src="${src}" alt="Detail obrázek ${index + 1}" />
+          <button class="remove-detail-image" data-index="${index}">×</button>
+        </div>
+      `).join("");
+
+      detailImageGrid.querySelectorAll(".detail-image-item img").forEach((image, index) => {
+        image.addEventListener("click", () => {
+          const project = getCurrentProject();
+          const node = project?.nodes.find(item => item.id === activeDetailNodeId);
+          if (!node) return;
+
+          activeImageDetailNodeId = null;
+          modalTitle.textContent = (node.title || "Detail") + " – obrázek " + (index + 1);
+          modalImage.src = image.src;
+          imageDetailText.value = "";
+          imageInfoSide.classList.add("hidden");
+          imageModal.classList.remove("hidden");
+        });
+      });
+
+      detailImageGrid.querySelectorAll(".remove-detail-image").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+
+          const project = getCurrentProject();
+          const node = project?.nodes.find(item => item.id === activeDetailNodeId);
+          if (!node) return;
+
+          const index = Number(button.dataset.index);
+          node.detailImages.splice(index, 1);
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+          renderDetailImages(node);
+        });
+      });
+    }
+
+    function saveCurrentDetail() {
+      const project = getCurrentProject();
+
+      if (activeCalendarNote) {
+        const note = project?.notes?.find(item => item.id === activeCalendarNote.noteId);
+        if (note) {
+          note.detail = detailEditorText.value;
+          const titleInput = document.getElementById("calendarNoteTitleInput");
+          if (titleInput) {
+            note.title = titleInput.value.trim() || "Nová poznámka";
+          }
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+          showToast("Poznámka uložena.");
+        }
+
+        closeLargeDetailEditor();
+        return;
+      }
+
+      if (activeCalendarDay) {
+        const dayDetail = project?.dayDetails?.[activeCalendarDay.date];
+        if (dayDetail) {
+          dayDetail.detail = detailEditorText.value;
+          const titleInput = document.getElementById("calendarNoteTitleInput");
+          if (titleInput) {
+            dayDetail.title = titleInput.value.trim() || ("Detail dne " + formatTimelineDate(activeCalendarDay.date));
+          }
+          project.updatedAt = new Date().toISOString();
+          saveApp();
+          showToast("Detail dne uložen.");
+        }
+
+        closeLargeDetailEditor();
+        return;
+      }
+
+      const node = project?.nodes?.find(item => item.id === activeDetailNodeId);
+      if (node) {
+        node.detail = detailEditorText.value;
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        showToast("Detail uložen.");
+      }
+
+      closeLargeDetailEditor();
+    }
+
+    function deleteCurrentDetail() {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      if (activeCalendarNote) {
+        const note = project.notes?.find(item => item.id === activeCalendarNote.noteId);
+        const name = note?.title || "poznámku";
+        const confirmed = confirm(`Opravdu smazat „${name}“?`);
+        if (!confirmed) return;
+
+        project.notes = (project.notes || []).filter(item => item.id !== activeCalendarNote.noteId);
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        closeLargeDetailEditor();
+        showToast("Poznámka smazána.");
+        return;
+      }
+
+      if (activeCalendarDay) {
+        const confirmed = confirm("Opravdu smazat detail tohoto dne?");
+        if (!confirmed) return;
+
+        if (project.dayDetails) {
+          delete project.dayDetails[activeCalendarDay.date];
+        }
+
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        closeLargeDetailEditor();
+        showToast("Detail dne smazán.");
+        return;
+      }
+
+      const node = project.nodes?.find(item => item.id === activeDetailNodeId);
+      const name = node?.title || "tuhle buňku";
+      const confirmed = confirm(`Opravdu smazat „${name}“?`);
+      if (!confirmed) return;
+
+      project.nodes = (project.nodes || []).filter(item => item.id !== activeDetailNodeId);
+      project.edges = (project.edges || []).filter(edge => edge.from !== activeDetailNodeId && edge.to !== activeDetailNodeId);
+      project.updatedAt = new Date().toISOString();
+      saveApp();
+      closeLargeDetailEditor();
+      renderMap();
+      showToast("Buňka smazána.");
+    }
+
+    function closeLargeDetailEditor() {
+      activeDetailNodeId = null;
+      activeCalendarNote = null;
+      activeCalendarDay = null;
+      detailEditorModal.classList.add("hidden");
+      detailEditorText.value = "";
+      detailImageGrid.innerHTML = "";
+
+      const titleInput = document.getElementById("calendarNoteTitleInput");
+      if (titleInput) titleInput.remove();
+
+      const project = getCurrentProject();
+      if (project?.type === "notesCalendar") {
+        renderMap();
+      }
+    }
+
+    function openImageDetail(nodeId) {
+      const project = getCurrentProject();
+      const node = project.nodes.find(item => item.id === nodeId);
+      if (!node) return;
+
+      if (!node.image) {
+        showToast("Tahle karta zatím nemá obrázek.");
+        return;
+      }
+
+      activeImageDetailNodeId = nodeId;
+      modalTitle.textContent = node.title || "Detail obrázku";
+      modalImage.src = node.image;
+      imageDetailText.value = node.detail || "";
+      imageInfoSide.classList.remove("hidden");
+      imageModal.classList.remove("hidden");
+    }
+
+    function preparePdfExport() {
+      const project = getCurrentProject();
+      if (!project) return false;
+
+      pdfExportArea.innerHTML = "";
+
+      const title = document.createElement("div");
+      title.className = "pdf-export-title";
+      title.textContent = project.name || "Projekt";
+      pdfExportArea.appendChild(title);
+
+      if (project.type === "timeline") {
+        const timelineBoard = document.querySelector(".timeline-board");
+
+        if (!timelineBoard) {
+          showToast("Není co exportovat.");
+          return false;
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "pdf-timeline";
+        wrapper.appendChild(timelineBoard.cloneNode(true));
+        pdfExportArea.appendChild(wrapper);
+        return true;
+      }
+
+      if (project.type === "notesCalendar") {
+        const calendar = document.querySelector(".notes-calendar");
+
+        if (!calendar) {
+          showToast("Není co exportovat.");
+          return false;
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "pdf-timeline";
+        wrapper.appendChild(calendar.cloneNode(true));
+        pdfExportArea.appendChild(wrapper);
+        return true;
+      }
+
+      const nodeElements = Array.from(document.querySelectorAll(".node"));
+
+      if (nodeElements.length === 0) {
+        showToast("Není co exportovat.");
+        return false;
+      }
+
+      const bounds = getMapContentBounds(nodeElements);
+
+      const padding = 80;
+      const width = Math.max(600, bounds.maxX - bounds.minX + padding * 2);
+      const height = Math.max(420, bounds.maxY - bounds.minY + padding * 2);
+
+      const canvas = document.createElement("div");
+      canvas.className = "pdf-map-canvas";
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+
+      const inner = boardWrap.cloneNode(true);
+      inner.className = "pdf-map-inner";
+      inner.style.width = "5200px";
+      inner.style.height = "3600px";
+      inner.style.transform = `translate(${padding - bounds.minX}px, ${padding - bounds.minY}px)`;
+      inner.style.position = "absolute";
+      inner.style.left = "0";
+      inner.style.top = "0";
+
+      inner.querySelectorAll(".notes-panel").forEach(panel => panel.remove());
+      inner.querySelectorAll(".node").forEach(node => {
+        node.classList.remove("selected", "notes-open");
+      });
+
+      canvas.appendChild(inner);
+      pdfExportArea.appendChild(canvas);
+
+      return true;
+    }
+
+    function getMapContentBounds(nodeElements) {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      nodeElements.forEach(element => {
+        const x = Number.parseFloat(element.style.left) || 0;
+        const y = Number.parseFloat(element.style.top) || 0;
+        const width = element.offsetWidth || 330;
+        const height = element.offsetHeight || 430;
+
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + width);
+        maxY = Math.max(maxY, y + height);
+      });
+
+      return { minX, minY, maxX, maxY };
+    }
+
+    function clearPdfExport() {
+      pdfExportArea.innerHTML = "";
+    }
+
+    function exportAll() {
+      const blob = new Blob([JSON.stringify(app, null, 2)], {
+        type: "application/json"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "my-jobs-agent-mapa.json";
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("Export hotový.");
+    }
+
+    function importAll(file) {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+
+          if (!Array.isArray(imported.projects)) {
+            throw new Error("Neplatný soubor.");
+          }
+
+          app = {
+            loggedIn: true,
+            currentProjectId: imported.currentProjectId || null,
+            zoom: imported.zoom || 1,
+            projects: imported.projects
+          };
+
+          saveApp();
+          renderProjects();
+          showScreen("projects");
+          showToast("Import hotový.");
+        } catch (error) {
+          console.error(error);
+          showToast("Import se nepovedl.");
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    async function deleteCurrentProject() {
+      const project = getCurrentProject();
+
+      if (!project) return;
+
+      if (!confirm("Opravdu chceš smazat projekt?")) return;
+
+      const { error } = await supabaseClient
+        .from("projects")
+        .delete()
+        .eq("id", project.id);
+
+      if (error) {
+        console.warn("Smazání projektu selhalo:", error);
+        showToast("Projekt se nepodařilo smazat.");
+        return;
+      }
+
+      app.projects = app.projects.filter(item => item.id !== project.id);
+      app.currentProjectId = null;
+      selectedNodeId = null;
+
+      renderProjects();
+      showScreen("projects");
+      showToast("Projekt smazán.");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    loginButton.addEventListener("click", async () => {
+      const email = loginEmail.value.trim().toLowerCase();
+      const password = loginPassword.value;
+
+      if (!email || !password) {
+        showToast("Vyplň email a heslo.");
+        return;
+      }
+
+      loginButton.disabled = true;
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        if (error) {
+          const registerConfirm = confirm("Přihlášení selhalo. Chceš se zaregistrovat tímto emailem?");
+          if (!registerConfirm) throw error;
+
+          const { error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+          if (signUpError) throw signUpError;
+
+          showToast("Registrace odeslána. Účet čeká na schválení.");
+          return;
+        }
+
+        await loadApp();
+
+        if (app.waitingForApproval) {
+          showToast("Účet čeká na schválení.");
+          showScreen("projects");
+          projectGrid.innerHTML = '<div class="empty-projects" style="grid-column:1/-1;margin:0;"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.<br>Admin: v.antonyuk95@gmail.com</p></div>';
+          return;
+        }
+
+        renderProjects();
+        showScreen("projects");
+      } catch (error) {
+        console.warn(error);
+        showToast(error.message || "Přihlášení selhalo.");
+      } finally {
+        loginButton.disabled = false;
+      }
+    });
+
+    logoutButton.addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      app.loggedIn = false;
+      app.currentProjectId = null;
+      session = null;
+      profile = null;
+      showScreen("login");
+    });
+
+    newProjectButton.addEventListener("click", () => {
+      newProjectNameInput.value = "Projekt " + (app.projects.length + 1);
+      projectTypeModal.classList.remove("hidden");
+      setTimeout(() => newProjectNameInput.focus(), 0);
+    });
+
+    cancelProjectTypeButton.addEventListener("click", () => {
+      projectTypeModal.classList.add("hidden");
+    });
+
+    projectTypeModal.addEventListener("click", event => {
+      if (event.target === projectTypeModal) {
+        projectTypeModal.classList.add("hidden");
+      }
+    });
+
+    document.querySelectorAll(".type-card").forEach(button => {
+      button.addEventListener("click", async () => {
+        const name = newProjectNameInput.value.trim() || "Projekt " + (app.projects.length + 1);
+        const type = button.dataset.projectType;
+
+        const project = createStarterProject(name, type);
+
+        const { data, error } = await supabaseClient
+          .from("projects")
+          .insert({
+            name,
+            type,
+            data: project
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.warn("Vytvoření projektu selhalo:", error);
+          showToast("Projekt se nepodařilo vytvořit.");
+          return;
+        }
+
+        project.id = data.id;
+        project.createdAt = data.created_at || project.createdAt;
+        project.updatedAt = data.updated_at || project.updatedAt;
+
+        await supabaseClient
+          .from("projects")
+          .update({ data: project })
+          .eq("id", data.id);
+
+        app.projects.push(project);
+        app.currentProjectId = project.id;
+
+        projectTypeModal.classList.add("hidden");
+        openCurrentProject();
+        await saveApp();
+        showToast("Projekt vytvořen.");
+      });
+    });
+
+    function goBackToProjects(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      selectedNodeId = null;
+      activeDetailNodeId = null;
+      activeImageDetailNodeId = null;
+      activeTimelineItem = null;
+      activeCalendarNote = null;
+      activeCalendarDay = null;
+
+      imageModal.classList.add("hidden");
+      detailEditorModal.classList.add("hidden");
+      timelineItemModal.classList.add("hidden");
+      projectTypeModal.classList.add("hidden");
+
+      modalImage.src = "";
+      imageDetailText.value = "";
+      imageInfoSide.classList.remove("hidden");
+      detailEditorText.value = "";
+      detailImageGrid.innerHTML = "";
+
+      const titleInput = document.getElementById("calendarNoteTitleInput");
+      if (titleInput) titleInput.remove();
+
+      document.querySelectorAll(".node").forEach(el => el.remove());
+      document.querySelectorAll(".timeline-board").forEach(el => el.remove());
+      document.querySelectorAll(".timeline-placeholder").forEach(el => el.remove());
+      document.querySelectorAll(".notes-calendar").forEach(el => el.remove());
+      document.querySelectorAll(".edge-line").forEach(el => el.remove());
+
+      app.currentProjectId = null;
+
+      mapScreen.classList.add("hidden");
+      projectsScreen.classList.remove("hidden");
+      loginScreen.classList.add("hidden");
+
+      renderProjects();
+
+      try {
+        saveApp();
+      } catch (error) {
+        console.warn("Uložení při návratu zpět selhalo:", error);
+      }
+
+      window.scrollTo(0, 0);
+    }
+
+    backToProjectsButton.onclick = goBackToProjects;
+    backToProjectsButton.addEventListener("click", goBackToProjects, true);
+
+    addRootCardButton.addEventListener("click", addRootCard);
+
+    exportPdfButton.addEventListener("click", () => {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      const prepared = preparePdfExport();
+      if (!prepared) return;
+
+      showToast("Otevře se tisk. Vyber „Uložit jako PDF“.");
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    });
+
+    window.addEventListener("afterprint", clearPdfExport);
+
+    deleteProjectButton.addEventListener("click", deleteCurrentProject);
+
+    zoomOutButton.addEventListener("click", () => zoomBy(-0.1));
+    zoomInButton.addEventListener("click", () => zoomBy(0.1));
+    zoomResetButton.addEventListener("click", resetZoom);
+    fitButton.addEventListener("click", fitToContent);
+
+    closeModalButton.addEventListener("click", () => {
+      imageModal.classList.add("hidden");
+      modalImage.src = "";
+      activeImageDetailNodeId = null;
+      imageDetailText.value = "";
+      imageInfoSide.classList.remove("hidden");
+    });
+
+    imageDetailText.addEventListener("input", () => {
+      const project = getCurrentProject();
+      const node = project?.nodes?.find(item => item.id === activeImageDetailNodeId);
+      if (!node) return;
+
+      node.detail = imageDetailText.value;
+      project.updatedAt = new Date().toISOString();
+      saveApp();
+
+      const detailInput = document.querySelector(`.node[data-id="${activeImageDetailNodeId}"] .detail-input`);
+      if (detailInput) {
+        detailInput.value = node.detail;
+      }
+    });
+
+    closeDetailEditorButton.addEventListener("click", closeLargeDetailEditor);
+    saveDetailButton.addEventListener("click", saveCurrentDetail);
+    deleteDetailButton.addEventListener("click", deleteCurrentDetail);
+
+    closeTimelineModalButton.addEventListener("click", closeTimelineItemModal);
+    saveTimelineItemButton.addEventListener("click", saveTimelineItem);
+    deleteTimelineItemButton.addEventListener("click", deleteTimelineItem);
+
+    timelineItemModal.addEventListener("click", event => {
+      if (event.target === timelineItemModal) {
+        closeTimelineItemModal();
+      }
+    });
+
+    detailEditorModal.addEventListener("click", event => {
+      if (event.target === detailEditorModal) {
+        closeLargeDetailEditor();
+        closeTimelineItemModal();
+      }
+    });
+
+    detailEditorText.addEventListener("input", () => {
+      const project = getCurrentProject();
+
+      if (activeCalendarNote) {
+        const note = project?.notes?.find(item => item.id === activeCalendarNote.noteId);
+        if (!note) return;
+
+        note.detail = detailEditorText.value;
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        return;
+      }
+
+      if (activeCalendarDay) {
+        const dayDetail = project?.dayDetails?.[activeCalendarDay.date];
+        if (!dayDetail) return;
+
+        dayDetail.detail = detailEditorText.value;
+        project.updatedAt = new Date().toISOString();
+        saveApp();
+        return;
+      }
+
+      const node = project?.nodes?.find(item => item.id === activeDetailNodeId);
+      if (!node) return;
+
+      node.detail = detailEditorText.value;
+      project.updatedAt = new Date().toISOString();
+      saveApp();
+    });
+
+    detailImageInput.addEventListener("change", event => {
+      const files = Array.from(event.target.files || []);
+      const project = getCurrentProject();
+
+      if (files.length === 0) return;
+
+      let target = null;
+      let renderer = null;
+
+      if (activeCalendarNote) {
+        target = project?.notes?.find(item => item.id === activeCalendarNote.noteId);
+        renderer = renderSharedDetailImages;
+      } else if (activeCalendarDay) {
+        target = project?.dayDetails?.[activeCalendarDay.date];
+        renderer = renderSharedDetailImages;
+      } else {
+        target = project?.nodes?.find(item => item.id === activeDetailNodeId);
+        renderer = renderDetailImages;
+      }
+
+      if (!target) return;
+
+      if (!Array.isArray(target.detailImages)) {
+        target.detailImages = [];
+      }
+
+      let loaded = 0;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          target.detailImages.push(reader.result);
+          loaded += 1;
+
+          if (loaded === files.length) {
+            project.updatedAt = new Date().toISOString();
+            renderer(target);
+
+            try {
+              saveApp();
+            } catch (error) {
+              console.warn("Uložení obrázku v detailu selhalo:", error);
+            }
+
+            showToast("Obrázky přidány.");
+          }
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      detailImageInput.value = "";
+    });
+
+    imageModal.addEventListener("click", event => {
+      if (event.target === imageModal) {
+        imageModal.classList.add("hidden");
+        modalImage.src = "";
+        activeImageDetailNodeId = null;
+        imageDetailText.value = "";
+        imageInfoSide.classList.remove("hidden");
+      }
+    });
+
+    if (exportAllButton) {
+      exportAllButton.addEventListener("click", exportAll);
+    }
+
+    if (importAllInput) {
+      importAllInput.addEventListener("change", event => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        importAll(file);
+        importAllInput.value = "";
+      });
+    }
+
+    workspace.addEventListener("wheel", event => {
+      if (!event.ctrlKey) return;
+
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -0.08 : 0.08;
+      zoomBy(delta);
+    }, { passive: false });
+
+    window.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        imageModal.classList.add("hidden");
+        modalImage.src = "";
+        activeImageDetailNodeId = null;
+        imageDetailText.value = "";
+        imageInfoSide.classList.remove("hidden");
+        closeLargeDetailEditor();
+        closeTimelineItemModal();
+      }
+    });
+
+    async function initOnlineApp() {
+      await loadApp();
+
+      if (app.loggedIn && !app.waitingForApproval) {
+        renderProjects();
+        showScreen("projects");
+      } else if (app.loggedIn && app.waitingForApproval) {
+        showScreen("projects");
+        projectGrid.innerHTML = '<div class="empty-projects" style="grid-column:1/-1;margin:0;"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.<br>Admin: v.antonyuk95@gmail.com</p></div>';
+      } else {
+        showScreen("login");
+      }
+    }
+
+    initOnlineApp();
+  </script>
+</body>
+</html>
