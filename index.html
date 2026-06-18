@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Jobs Agent</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<section id="login" class="screen center">
+  <div class="box auth">
+    <h1>My Jobs Agent</h1>
+    <p id="authHint">Přihlášení</p>
+    <div class="tabs"><button id="tabLogin" class="active">Přihlášení</button><button id="tabRegister">Registrace</button></div>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Heslo">
+    <button id="authBtn" class="primary">Přihlásit</button>
+    <p id="msg" class="muted"></p>
+  </div>
+</section>
+
+<section id="pending" class="screen hidden">
+  <header><h1>My Jobs Agent</h1><button id="logoutPending">Odhlásit</button></header>
+  <main class="center"><div class="box"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.</p><p class="muted">Admin: v.antonyuk95@gmail.com</p></div></main>
+</section>
+
+<section id="projects" class="screen hidden">
+  <header><h1>My Jobs Agent – projekty</h1><div><button id="adminBtn" class="hidden">Žádosti</button><button id="newProject" class="primary">+ Nový projekt</button><button id="logout">Odhlásit</button></div></header>
+  <main class="page">
+    <div class="hero"><b>VÝBĚR</b><h2>MY JOBS AGENT</h2><p>Projekty</p></div>
+    <div class="columns">
+      <section><h2>Obrázková mapa</h2><p>Mapování webu pomocí screenshotů</p><div id="listImageMap"></div></section>
+      <section><h2>Pavojk</h2><p>Jednoduché buňky a větvení bez obrázků</p><div id="listPavojk"></div></section>
+      <section><h2>Časová osa</h2><p>Plán kroků a termínů v čase</p><div id="listTimeline"></div></section>
+      <section><h2>Poznámkový blok</h2><p>Cally, porady a nápady</p><div id="listCalendar"></div></section>
+    </div>
+  </main>
+</section>
+
+<section id="project" class="screen hidden">
+  <header><div class="row"><button id="back">←</button><h1 id="projectName">Projekt</h1></div><div><button id="addMain">+ Hlavní karta</button><button id="printPdf">Export PDF</button><button id="deleteProject" class="danger">Smazat projekt</button></div></header>
+  <main id="work" class="work"><svg id="svg"></svg><div id="canvas"></div></main>
+</section>
+
+<section id="admin" class="screen hidden">
+  <header><div class="row"><button id="backAdmin">←</button><h1>Žádosti o přístup</h1></div></header>
+  <main class="page"><div id="requests"></div></main>
+</section>
+
+<div id="typeModal" class="modal hidden"><div class="box wide">
+  <button id="closeType" class="x">×</button><h2>Nový projekt</h2><input id="projectTitleInput" placeholder="Název projektu">
+  <div class="typeGrid">
+    <button data-type="imageMap"><b>+ obrázková mapa</b><span>Screenshoty webu</span></button>
+    <button data-type="pavojk"><b>+ klasický pavojk</b><span>Buňky bez obrázků</span></button>
+    <button data-type="timeline"><b>+ časová osa</b><span>Termíny</span></button>
+    <button data-type="notesCalendar"><b>+ poznámkový blok</b><span>Kalendář</span></button>
+  </div>
+</div></div>
+
+<div id="detailModal" class="modal hidden"><div class="box detail">
+  <button id="closeDetail" class="x">×</button><h2 id="detailTitle">Detail</h2>
+  <div class="detailGrid"><textarea id="detailText" placeholder="Sem napiš detail..."></textarea><div><label class="primary file">Přidat obrázek<input id="detailFile" type="file" accept="image/*" multiple hidden></label><div id="detailImgs"></div></div></div>
+  <div class="footer"><button id="deleteDetail" class="danger">Smazat</button><button id="saveDetail" class="primary">Uložit</button></div>
+</div></div>
+
+<div id="imgModal" class="modal hidden"><div class="box imgBox"><button id="closeImg" class="x">×</button><img id="bigImg"></div></div>
+<div id="toast"></div>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+</body></html>
