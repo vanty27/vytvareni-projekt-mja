@@ -4578,16 +4578,46 @@
       const project = getCurrentProject();
       if (!project) return;
 
-      const confirmed = confirm("Opravdu smazat kartu? Smažou se i její spojovací čáry.");
+      const confirmed = confirm("Opravdu smazat kartu?");
       if (!confirmed) return;
 
+      const incomingEdges = (project.edges || []).filter(edge => edge.to === nodeId);
+      const outgoingEdges = (project.edges || []).filter(edge => edge.from === nodeId);
+
       project.nodes = project.nodes.filter(node => node.id !== nodeId);
-      project.edges = project.edges.filter(edge => edge.from !== nodeId && edge.to !== nodeId);
+      project.edges = (project.edges || []).filter(edge => edge.from !== nodeId && edge.to !== nodeId);
+
+      // Když smažu mezikartu, automaticky propojím předchozí kartu s kartami za ní.
+      // Příklad: A → B → C se po smazání B změní na A → C.
+      // Příklad: A → B → C,D,E se po smazání B změní na A → C, A → D, A → E.
+      incomingEdges.forEach(incoming => {
+        outgoingEdges.forEach(outgoing => {
+          if (incoming.from === outgoing.to) return;
+
+          const alreadyExists = project.edges.some(edge => edge.from === incoming.from && edge.to === outgoing.to);
+          const fromNodeExists = project.nodes.some(node => node.id === incoming.from);
+          const toNodeExists = project.nodes.some(node => node.id === outgoing.to);
+
+          if (!alreadyExists && fromNodeExists && toNodeExists) {
+            project.edges.push({
+              id: generateId(),
+              from: incoming.from,
+              to: outgoing.to
+            });
+          }
+        });
+      });
+
       selectedNodeId = null;
 
       project.updatedAt = new Date().toISOString();
       renderMap();
-      showToast("Karta smazána.");
+
+      if (incomingEdges.length && outgoingEdges.length) {
+        showToast("Karta smazána a spojení přepojeno.");
+      } else {
+        showToast("Karta smazána.");
+      }
     }
 
     function renderConnections() {
