@@ -2579,6 +2579,44 @@
       }
     }
 
+
+    /* MID-EDGE INSERT BUTTON v11 */
+    .edge-insert-plus {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #d8e1ee;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+      color: #64748b;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 950;
+      display: grid;
+      place-items: center;
+      z-index: 4;
+      opacity: 0.62;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .edge-insert-plus:hover {
+      opacity: 1;
+      color: #2563eb;
+      background: #ffffff;
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+
+    @media (max-width: 768px) {
+      .edge-insert-plus {
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+        opacity: 0.76;
+      }
+    }
+
   </style>
 </head>
 
@@ -4485,6 +4523,57 @@
       showToast("Hlavní karta přidána.");
     }
 
+
+    function addNodeBetween(edgeId) {
+      const project = getCurrentProject();
+      if (!project) return;
+
+      const edgeIndex = project.edges.findIndex(edge => edge.id === edgeId);
+      if (edgeIndex === -1) return;
+
+      const edge = project.edges[edgeIndex];
+      const fromNode = project.nodes.find(node => node.id === edge.from);
+      const toNode = project.nodes.find(node => node.id === edge.to);
+
+      if (!fromNode || !toNode) return;
+
+      const isPavojk = project.type === "pavojk" || project.type === "timeline";
+
+      const newNode = {
+        id: generateId(),
+        title: isPavojk ? "Nová buňka" : "Nová stránka",
+        titleColor: "orange",
+        detail: "",
+        detailImages: [],
+        notes: [],
+        image: isPavojk ? undefined : null,
+        x: Math.round((fromNode.x + toNode.x) / 2),
+        y: Math.round((fromNode.y + toNode.y) / 2)
+      };
+
+      project.nodes.push(newNode);
+
+      project.edges.splice(
+        edgeIndex,
+        1,
+        {
+          id: generateId(),
+          from: fromNode.id,
+          to: newNode.id
+        },
+        {
+          id: generateId(),
+          from: newNode.id,
+          to: toNode.id
+        }
+      );
+
+      selectedNodeId = newNode.id;
+      project.updatedAt = new Date().toISOString();
+      renderMap();
+      showToast("Mezikarta přidána.");
+    }
+
     function deleteNode(nodeId) {
       const project = getCurrentProject();
       if (!project) return;
@@ -4504,6 +4593,7 @@
     function renderConnections() {
       const old = connectionsSvg.querySelectorAll(".edge-line");
       old.forEach(line => line.remove());
+      boardWrap.querySelectorAll(".edge-insert-plus").forEach(button => button.remove());
 
       const project = getCurrentProject();
       if (!project) return;
@@ -4588,6 +4678,26 @@
         path.setAttribute("stroke-linecap", "round");
 
         connectionsSvg.appendChild(path);
+
+        const midpointX = (startX + endX) / 2;
+        const midpointY = (startY + endY) / 2;
+
+        const insertButton = document.createElement("button");
+        insertButton.type = "button";
+        insertButton.className = "edge-insert-plus";
+        insertButton.title = "Přidat mezikartu";
+        insertButton.textContent = "+";
+        insertButton.style.left = midpointX + "px";
+        insertButton.style.top = midpointY + "px";
+        insertButton.dataset.edgeId = edge.id;
+
+        insertButton.addEventListener("click", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          addNodeBetween(edge.id);
+        });
+
+        boardWrap.appendChild(insertButton);
       });
     }
 
