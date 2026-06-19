@@ -1864,6 +1864,87 @@
         width: 280px;
       }
     }
+
+    /* AUTH / ADMIN APPROVALS - added back without changing project UI */
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 7px;
+      background: #eef4ff;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+
+    .auth-tab {
+      height: 48px;
+      border-radius: 14px;
+      background: transparent;
+      color: #0d356f;
+      font-weight: 850;
+      font-size: 16px;
+    }
+
+    .auth-tab.active {
+      background: white;
+      color: var(--blue);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.10);
+    }
+
+    .login-note.auth-note {
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .admin-requests-modal {
+      width: min(920px, 96vw);
+      max-height: min(780px, 92vh);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .admin-requests-body {
+      padding: 22px;
+      overflow: auto;
+      background: #f8fbff;
+    }
+
+    .request-row {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 22px rgba(17, 24, 39, 0.06);
+    }
+
+    .request-row b {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .request-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .pending-card {
+      width: min(460px, 92vw);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 34px;
+      margin: 90px auto 0;
+    }
+
   </style>
 </head>
 
@@ -1876,20 +1957,25 @@
         Interní prototyp pro mapování obrazovek, větvení webu a komentáře k projektu.
       </p>
 
+      <div class="auth-tabs">
+        <button id="loginModeButton" class="auth-tab active" type="button">Přihlášení</button>
+        <button id="registerModeButton" class="auth-tab" type="button">Registrace</button>
+      </div>
+
       <div class="field">
         <label>Email</label>
-        <input id="loginEmail" type="email" placeholder="email" value="demo@myjobsagent.cz" />
+        <input id="loginEmail" type="email" placeholder="email" value="" />
       </div>
 
       <div class="field">
         <label>Heslo</label>
-        <input id="loginPassword" type="password" placeholder="heslo" value="demo" />
+        <input id="loginPassword" type="password" placeholder="heslo" value="" />
       </div>
 
       <button id="loginButton" class="primary-btn" style="width:100%;">Přihlásit se</button>
 
-      <div class="login-note">
-        Zatím je to offline prototyp. Přihlášení je jen vizuální, aby seděl tok aplikace.
+      <div id="authMessage" class="login-note auth-note">
+        Přihlas se, nebo vytvoř registraci. Nový účet musí schválit administrátor.
       </div>
     </div>
   </section>
@@ -1898,6 +1984,7 @@
   <section id="projectsScreen" class="screen hidden">
     <header class="app-header">
       <div class="app-title">My Jobs Agent – projekty</div>
+      <button id="adminRequestsButton" class="secondary-btn hidden">Žádosti</button>
       <button id="logoutButton" class="secondary-btn">Odhlásit</button>
     </header>
 
@@ -1987,6 +2074,20 @@
     </div>
   </div>
 
+
+
+  <!-- ADMIN REQUESTS MODAL -->
+  <div id="adminRequestsModal" class="modal-backdrop hidden">
+    <div class="modal admin-requests-modal">
+      <div class="modal-header">
+        <h3>Žádosti o přístup</h3>
+        <button id="closeAdminRequestsButton" class="close-btn">×</button>
+      </div>
+      <div id="adminRequestsList" class="admin-requests-body">
+        <p class="muted">Načítám žádosti...</p>
+      </div>
+    </div>
+  </div>
 
   <!-- PROJECT TYPE MODAL -->
   <div id="projectTypeModal" class="modal-backdrop hidden">
@@ -2111,7 +2212,14 @@
     const mapScreen = document.getElementById("mapScreen");
 
     const loginButton = document.getElementById("loginButton");
+    const loginModeButton = document.getElementById("loginModeButton");
+    const registerModeButton = document.getElementById("registerModeButton");
+    const authMessage = document.getElementById("authMessage");
     const logoutButton = document.getElementById("logoutButton");
+    const adminRequestsButton = document.getElementById("adminRequestsButton");
+    const adminRequestsModal = document.getElementById("adminRequestsModal");
+    const closeAdminRequestsButton = document.getElementById("closeAdminRequestsButton");
+    const adminRequestsList = document.getElementById("adminRequestsList");
 
     const newProjectButton = document.getElementById("newProjectButton");
     const projectGrid = document.getElementById("projectGrid");
@@ -2185,11 +2293,21 @@
     const ADMIN_EMAIL = "v.antonyuk95@gmail.com";
     let session = null;
     let profile = null;
+    let authMode = "login";
 
     let selectedNodeId = null;
 
     function generateId() {
       return "id_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+    }
+
+    function formatDateTime(value) {
+      return new Date(value).toLocaleString("cs-CZ", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
 
     function showToast(message) {
@@ -2318,6 +2436,9 @@
 
       app.loggedIn = true;
       app.waitingForApproval = false;
+      if (adminRequestsButton) {
+        adminRequestsButton.classList.toggle("hidden", profile?.role !== "admin");
+      }
       app.projects = (rows || []).map(row => {
         const project = row.data || {};
         project.id = row.id;
@@ -4249,6 +4370,19 @@
         .replaceAll("'", "&#039;");
     }
 
+        function setAuthMode(mode) {
+      authMode = mode;
+      loginModeButton.classList.toggle("active", mode === "login");
+      registerModeButton.classList.toggle("active", mode === "register");
+      loginButton.textContent = mode === "login" ? "Přihlásit se" : "Registrovat";
+      authMessage.textContent = mode === "login"
+        ? "Přihlas se ke svému účtu."
+        : "Po registraci bude účet čekat na schválení administrátorem.";
+    }
+
+    loginModeButton.addEventListener("click", () => setAuthMode("login"));
+    registerModeButton.addEventListener("click", () => setAuthMode("register"));
+
     loginButton.addEventListener("click", async () => {
       const email = loginEmail.value.trim().toLowerCase();
       const password = loginPassword.value;
@@ -4261,25 +4395,43 @@
       loginButton.disabled = true;
 
       try {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (authMode === "register") {
+          const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
-        if (error) {
-          const registerConfirm = confirm("Přihlášení selhalo. Chceš se zaregistrovat tímto emailem?");
-          if (!registerConfirm) throw error;
+          if (error) throw error;
 
-          const { error: signUpError } = await supabaseClient.auth.signUp({ email, password });
-          if (signUpError) throw signUpError;
+          // Když DB trigger profil nevytvoří, zkusíme ho vytvořit i z klienta.
+          // Pokud to RLS nedovolí, nevadí — trigger v Supabase už to obvykle řeší.
+          if (data?.user?.id) {
+            try {
+              await supabaseClient.from("profiles").upsert({
+                id: data.user.id,
+                email,
+                role: email === ADMIN_EMAIL ? "admin" : "user",
+                status: email === ADMIN_EMAIL ? "approved" : "pending"
+              });
+            } catch (profileInsertError) {
+              console.warn("Profil se nevytvořil z klienta, pravděpodobně ho řeší DB trigger:", profileInsertError);
+            }
+          }
 
-          showToast("Registrace odeslána. Účet čeká na schválení.");
+          authMessage.textContent = "Registrace odeslána. Účet čeká na schválení administrátorem.";
+          showToast("Registrace odeslána.");
+          setAuthMode("login");
           return;
         }
+
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
         await loadApp();
 
         if (app.waitingForApproval) {
           showToast("Účet čeká na schválení.");
           showScreen("projects");
-          projectGrid.innerHTML = '<div class="empty-projects" style="grid-column:1/-1;margin:0;"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.<br>Admin: v.antonyuk95@gmail.com</p></div>';
+          projectGrid.innerHTML = '<div class="pending-card" style="grid-column:1/-1;"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.</p><p>Admin: v.antonyuk95@gmail.com</p></div>';
+          emptyProjects.classList.add("hidden");
+          if (adminRequestsButton) adminRequestsButton.classList.add("hidden");
           return;
         }
 
@@ -4287,7 +4439,8 @@
         showScreen("projects");
       } catch (error) {
         console.warn(error);
-        showToast(error.message || "Přihlášení selhalo.");
+        authMessage.textContent = error.message || "Akce se nepodařila.";
+        showToast(error.message || "Akce se nepodařila.");
       } finally {
         loginButton.disabled = false;
       }
@@ -4299,8 +4452,101 @@
       app.currentProjectId = null;
       session = null;
       profile = null;
+      if (adminRequestsButton) adminRequestsButton.classList.add("hidden");
       showScreen("login");
     });
+
+
+    async function loadAdminRequests() {
+      if (!profile || profile.role !== "admin") {
+        showToast("Nemáš oprávnění.");
+        return;
+      }
+
+      adminRequestsList.innerHTML = '<p class="muted">Načítám žádosti...</p>';
+
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn(error);
+        adminRequestsList.innerHTML = '<p class="muted">Nepodařilo se načíst žádosti. Zkontroluj práva v Supabase.</p>';
+        return;
+      }
+
+      const pending = (data || []).filter(item => item.status === "pending");
+
+      if (!pending.length) {
+        adminRequestsList.innerHTML = '<p class="muted">Žádné čekající žádosti.</p>';
+        return;
+      }
+
+      adminRequestsList.innerHTML = pending.map(item => `
+        <div class="request-row">
+          <div>
+            <b>${escapeHtml(item.email || "Bez emailu")}</b>
+            <div class="muted">Čeká na schválení${item.created_at ? " · " + formatDateTime(item.created_at) : ""}</div>
+          </div>
+          <div class="request-actions">
+            <button class="primary-btn approve-user" data-id="${escapeHtml(item.id)}">Schválit</button>
+            <button class="danger-btn reject-user" data-id="${escapeHtml(item.id)}">Zamítnout</button>
+          </div>
+        </div>
+      `).join("");
+
+      adminRequestsList.querySelectorAll(".approve-user").forEach(button => {
+        button.addEventListener("click", () => updateUserStatus(button.dataset.id, "approved"));
+      });
+
+      adminRequestsList.querySelectorAll(".reject-user").forEach(button => {
+        button.addEventListener("click", () => updateUserStatus(button.dataset.id, "rejected"));
+      });
+    }
+
+    async function updateUserStatus(userId, status) {
+      const patch = { status };
+
+      if (status === "approved") {
+        patch.approved_at = new Date().toISOString();
+      }
+
+      const { error } = await supabaseClient
+        .from("profiles")
+        .update(patch)
+        .eq("id", userId);
+
+      if (error) {
+        console.warn(error);
+        showToast("Změna stavu selhala.");
+        return;
+      }
+
+      showToast(status === "approved" ? "Uživatel schválen." : "Uživatel zamítnut.");
+      await loadAdminRequests();
+    }
+
+    if (adminRequestsButton) {
+      adminRequestsButton.addEventListener("click", async () => {
+        adminRequestsModal.classList.remove("hidden");
+        await loadAdminRequests();
+      });
+    }
+
+    if (closeAdminRequestsButton) {
+      closeAdminRequestsButton.addEventListener("click", () => {
+        adminRequestsModal.classList.add("hidden");
+      });
+    }
+
+    if (adminRequestsModal) {
+      adminRequestsModal.addEventListener("click", event => {
+        if (event.target === adminRequestsModal) {
+          adminRequestsModal.classList.add("hidden");
+        }
+      });
+    }
 
     newProjectButton.addEventListener("click", () => {
       newProjectNameInput.value = "Projekt " + (app.projects.length + 1);
@@ -4618,8 +4864,9 @@
         renderProjects();
         showScreen("projects");
       } else if (app.loggedIn && app.waitingForApproval) {
+        if (adminRequestsButton) adminRequestsButton.classList.add("hidden");
         showScreen("projects");
-        projectGrid.innerHTML = '<div class="empty-projects" style="grid-column:1/-1;margin:0;"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.<br>Admin: v.antonyuk95@gmail.com</p></div>';
+        projectGrid.innerHTML = '<div class="pending-card" style="grid-column:1/-1;"><h2>Čeká na schválení</h2><p>Tvůj účet musí schválit administrátor.</p><p>Admin: v.antonyuk95@gmail.com</p></div>';
       } else {
         showScreen("login");
       }
