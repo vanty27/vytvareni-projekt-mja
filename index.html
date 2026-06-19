@@ -5507,41 +5507,84 @@
       workspace.scrollTop = worldY * clampedZoom - pointY;
     }
 
+
+    let oneFingerPanState = null;
+
+    function shouldIgnoreTouchPan(target) {
+      return Boolean(target.closest(
+        "button,input,textarea,select,label,.modal-backdrop,.notes-panel,.approval-popover,.node-top,.title-input,.detail-input,.mini-btn,.add-branch,.delete-card-x,.bulb-button,.pavojk-detail-btn,.timeline-item,.calendar-note"
+      ));
+    }
+
     workspace.addEventListener("touchstart", event => {
-      if (event.touches.length !== 2) return;
+      if (event.touches.length === 1) {
+        if (shouldIgnoreTouchPan(event.target)) return;
 
-      const center = getTouchCenter(event.touches);
+        oneFingerPanState = {
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY,
+          scrollLeft: workspace.scrollLeft,
+          scrollTop: workspace.scrollTop
+        };
 
-      pinchZoomState = {
-        distance: getTouchDistance(event.touches),
-        zoom: app.zoom || 1,
-        centerX: center.x,
-        centerY: center.y
-      };
+        return;
+      }
+
+      if (event.touches.length === 2) {
+        event.preventDefault();
+
+        const center = getTouchCenter(event.touches);
+
+        pinchZoomState = {
+          distance: getTouchDistance(event.touches),
+          zoom: app.zoom || 1,
+          centerX: center.x,
+          centerY: center.y
+        };
+
+        oneFingerPanState = null;
+      }
     }, { passive: false });
 
     workspace.addEventListener("touchmove", event => {
-      if (event.touches.length !== 2 || !pinchZoomState) return;
+      if (event.touches.length === 1 && oneFingerPanState) {
+        event.preventDefault();
 
-      event.preventDefault();
+        const touch = event.touches[0];
+        const dx = touch.clientX - oneFingerPanState.x;
+        const dy = touch.clientY - oneFingerPanState.y;
 
-      const currentDistance = getTouchDistance(event.touches);
-      if (!currentDistance) return;
+        workspace.scrollLeft = oneFingerPanState.scrollLeft - dx;
+        workspace.scrollTop = oneFingerPanState.scrollTop - dy;
+        return;
+      }
 
-      const center = getTouchCenter(event.touches);
-      const nextZoom = pinchZoomState.zoom * (currentDistance / pinchZoomState.distance);
+      if (event.touches.length === 2 && pinchZoomState) {
+        event.preventDefault();
 
-      zoomToPoint(nextZoom, center.x, center.y);
+        const currentDistance = getTouchDistance(event.touches);
+        if (!currentDistance) return;
+
+        const center = getTouchCenter(event.touches);
+        const nextZoom = pinchZoomState.zoom * (currentDistance / pinchZoomState.distance);
+
+        zoomToPoint(nextZoom, center.x, center.y);
+      }
     }, { passive: false });
 
     workspace.addEventListener("touchend", event => {
       if (event.touches.length < 2) {
         pinchZoomState = null;
       }
+
+      if (event.touches.length === 0) {
+        oneFingerPanState = null;
+      }
     }, { passive: false });
 
     workspace.addEventListener("touchcancel", () => {
       pinchZoomState = null;
+      oneFingerPanState = null;
     }, { passive: false });
 
     workspace.addEventListener("wheel", event => {
