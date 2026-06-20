@@ -2617,6 +2617,222 @@
       }
     }
 
+
+    /* DONKEY INTRO ANIMATION v13 */
+    .donkey-intro {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    .donkey-stage {
+      position: absolute;
+      left: 0;
+      bottom: 92px;
+      width: 100%;
+      height: 230px;
+    }
+
+    .donkey-runner {
+      position: absolute;
+      left: -260px;
+      bottom: 18px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      animation: donkeyMove 2.65s cubic-bezier(.18,.78,.18,1) forwards;
+      filter: drop-shadow(0 18px 20px rgba(15, 23, 42, 0.22));
+    }
+
+    .donkey-animal {
+      font-size: 88px;
+      line-height: 1;
+      transform-origin: 50% 90%;
+      animation: donkeyBounce .34s ease-in-out infinite alternate;
+    }
+
+    .donkey-basket {
+      font-size: 52px;
+      line-height: 1;
+      margin-left: -28px;
+      margin-bottom: 54px;
+      transform-origin: 20% 80%;
+      animation: basketTip 2.65s ease-in-out forwards;
+    }
+
+    .donkey-card {
+      position: absolute;
+      left: 52%;
+      bottom: 88px;
+      width: 164px;
+      height: 96px;
+      border-radius: 22px;
+      background: white;
+      border: 1px solid #d8e1ee;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+      opacity: 0;
+      transform: translate(-50%, -30px) rotate(-8deg) scale(.74);
+      animation: cardDrop 2.65s ease-in-out forwards;
+      display: grid;
+      place-items: center;
+      color: #172033;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .donkey-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 28px;
+      border-radius: 22px 22px 0 0;
+      background: linear-gradient(180deg, #b8ed99, var(--green));
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+
+    .donkey-card span {
+      position: relative;
+      padding-top: 18px;
+      font-size: 18px;
+    }
+
+    .donkey-dust {
+      position: absolute;
+      left: 50%;
+      bottom: 28px;
+      width: 210px;
+      height: 34px;
+      transform: translateX(-50%);
+      opacity: 0;
+      animation: dustPuff 2.65s ease-out forwards;
+    }
+
+    .donkey-dust::before,
+    .donkey-dust::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .22);
+    }
+
+    .donkey-dust::before {
+      left: 0;
+      width: 120px;
+      height: 24px;
+    }
+
+    .donkey-dust::after {
+      right: 0;
+      width: 94px;
+      height: 18px;
+    }
+
+    @keyframes donkeyMove {
+      0% { transform: translateX(0); }
+      48% { transform: translateX(calc(52vw - 40px)); }
+      67% { transform: translateX(calc(52vw - 40px)); }
+      100% { transform: translateX(calc(100vw + 320px)); }
+    }
+
+    @keyframes donkeyBounce {
+      from { transform: translateY(0) rotate(-1deg); }
+      to { transform: translateY(-7px) rotate(1deg); }
+    }
+
+    @keyframes basketTip {
+      0%, 45% { transform: rotate(0deg); }
+      54%, 66% { transform: rotate(-42deg) translate(-8px, 8px); }
+      76%, 100% { transform: rotate(0deg); }
+    }
+
+    @keyframes cardDrop {
+      0%, 48% {
+        opacity: 0;
+        transform: translate(-50%, -42px) rotate(-12deg) scale(.68);
+      }
+      58% {
+        opacity: 1;
+        transform: translate(-50%, 18px) rotate(8deg) scale(.92);
+      }
+      70% {
+        opacity: 1;
+        transform: translate(-50%, 0) rotate(0deg) scale(1);
+      }
+      88% {
+        opacity: 1;
+        transform: translate(-50%, 0) rotate(0deg) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, 8px) rotate(0deg) scale(.96);
+      }
+    }
+
+    @keyframes dustPuff {
+      0%, 50% { opacity: 0; transform: translateX(-50%) scale(.6); }
+      62% { opacity: 1; transform: translateX(-50%) scale(1); }
+      100% { opacity: 0; transform: translateX(-50%) scale(1.35); }
+    }
+
+    @media (max-width: 768px) {
+      .donkey-stage {
+        bottom: 62px;
+        height: 170px;
+      }
+
+      .donkey-animal {
+        font-size: 66px;
+      }
+
+      .donkey-basket {
+        font-size: 38px;
+        margin-left: -24px;
+        margin-bottom: 40px;
+      }
+
+      .donkey-card {
+        width: 138px;
+        height: 82px;
+        border-radius: 18px;
+      }
+
+      .donkey-card::before {
+        height: 24px;
+        border-radius: 18px 18px 0 0;
+      }
+
+      .donkey-card span {
+        font-size: 15px;
+      }
+    }
+
+
+    /* REALTIME + MOBILE FIXES v14 */
+    .notes-panel,
+    .notes-panel *,
+    .modal-backdrop,
+    .modal-backdrop *,
+    input,
+    textarea,
+    select,
+    button,
+    label {
+      touch-action: auto;
+    }
+
+    .node {
+      touch-action: none;
+    }
+
+    .detail-editor-footer .primary-btn::after {
+      content: "";
+    }
+
   </style>
 </head>
 
@@ -2966,6 +3182,9 @@
     let session = null;
     let profile = null;
     let authMode = "login";
+    let realtimeChannel = null;
+    let isApplyingRemoteUpdate = false;
+    let lastLocalSaveAt = 0;
 
     let selectedNodeId = null;
 
@@ -3028,12 +3247,13 @@
     }
 
     async function saveApp() {
-      if (!session?.user) return;
+      if (!session?.user || isApplyingRemoteUpdate) return;
 
       try {
         const project = getCurrentProject();
 
         if (project) {
+          lastLocalSaveAt = Date.now();
           project.updatedAt = new Date().toISOString();
 
           const { error } = await supabaseClient
@@ -3054,6 +3274,92 @@
       } catch (error) {
         console.warn("Uložení selhalo:", error);
         showToast("Uložení selhalo.");
+      }
+    }
+
+
+    function setupRealtimeSync() {
+      if (realtimeChannel || !session?.user) return;
+
+      realtimeChannel = supabaseClient
+        .channel("mja-projects-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "projects"
+          },
+          payload => {
+            handleRemoteProjectChange(payload);
+          }
+        )
+        .subscribe(status => {
+          console.log("Realtime sync:", status);
+        });
+    }
+
+    function normalizeProjectRow(row) {
+      const project = row?.data || {};
+      project.id = row.id;
+      project.name = row.name || project.name || "Projekt";
+      project.type = row.type || project.type || "imageMap";
+      return project;
+    }
+
+    function handleRemoteProjectChange(payload) {
+      if (!payload) return;
+
+      const row = payload.new || payload.old;
+      if (!row?.id) return;
+
+      // Krátce ignorujeme vlastní echo po lokálním uložení, aby neblikala obrazovka.
+      if (Date.now() - lastLocalSaveAt < 700) return;
+
+      if (payload.eventType === "DELETE") {
+        app.projects = app.projects.filter(project => project.id !== row.id);
+
+        if (app.currentProjectId === row.id) {
+          app.currentProjectId = null;
+          renderProjects();
+          showScreen("projects");
+        } else {
+          renderProjects();
+        }
+
+        return;
+      }
+
+      const incomingProject = normalizeProjectRow(payload.new);
+      const index = app.projects.findIndex(project => project.id === incomingProject.id);
+
+      if (index >= 0) {
+        app.projects[index] = incomingProject;
+      } else {
+        app.projects.push(incomingProject);
+      }
+
+      if (app.currentProjectId === incomingProject.id) {
+        const activeElement = document.activeElement;
+        const isEditingText = activeElement && ["INPUT", "TEXTAREA"].includes(activeElement.tagName);
+
+        // Když právě někdo píše do pole, nepřekreslíme mu ho pod rukama.
+        if (isEditingText) return;
+
+        isApplyingRemoteUpdate = true;
+
+        const scrollLeft = workspace.scrollLeft;
+        const scrollTop = workspace.scrollTop;
+
+        renderMap();
+
+        workspace.scrollLeft = scrollLeft;
+        workspace.scrollTop = scrollTop;
+
+        isApplyingRemoteUpdate = false;
+        showToast("Projekt aktualizován.");
+      } else {
+        renderProjects();
       }
     }
 
@@ -3108,16 +3414,11 @@
 
       app.loggedIn = true;
       app.waitingForApproval = false;
+      setupRealtimeSync();
       if (adminRequestsButton) {
         adminRequestsButton.classList.toggle("hidden", profile?.role !== "admin");
       }
-      app.projects = (rows || []).map(row => {
-        const project = row.data || {};
-        project.id = row.id;
-        project.name = row.name || project.name || "Projekt";
-        project.type = row.type || project.type || "imageMap";
-        return project;
-      });
+      app.projects = (rows || []).map(row => normalizeProjectRow(row));
     }
 
     function showScreen(screenName) {
@@ -3320,6 +3621,28 @@
       const nodes = Array.isArray(project.nodes) ? project.nodes.length : 0;
       const edges = Array.isArray(project.edges) ? project.edges.length : 0;
       return `${nodes} karet · ${edges} propojení<br />Klikni pro otevření projektu`;
+    }
+
+
+    function playDonkeyIntro(cardTitle = "Nová karta") {
+      const oldIntro = document.querySelector(".donkey-intro");
+      if (oldIntro) oldIntro.remove();
+
+      const intro = document.createElement("div");
+      intro.className = "donkey-intro";
+      intro.innerHTML = `
+        <div class="donkey-stage">
+          <div class="donkey-runner">
+            <div class="donkey-animal">🫏</div>
+            <div class="donkey-basket">🧺</div>
+          </div>
+          <div class="donkey-card"><span>${escapeHtml(cardTitle)}</span></div>
+          <div class="donkey-dust"></div>
+        </div>
+      `;
+
+      document.body.appendChild(intro);
+      setTimeout(() => intro.remove(), 2850);
     }
 
     function openCurrentProject() {
@@ -3597,6 +3920,10 @@
       const noteTextInput = el.querySelector(".note-text");
 
       renderNodeNotes(el, node);
+      if (notesPanel) {
+        notesPanel.addEventListener("touchstart", event => event.stopPropagation(), { passive: true });
+        notesPanel.addEventListener("touchmove", event => event.stopPropagation(), { passive: true });
+      }
 
       el.addEventListener("mousedown", () => {
         selectedNodeId = nodeId;
@@ -3799,43 +4126,75 @@
 
     function setupDragging(el, nodeId) {
       let isDragging = false;
-      let startMouseX = 0;
-      let startMouseY = 0;
+      let hasMoved = false;
+      let startPointerX = 0;
+      let startPointerY = 0;
       let startNodeX = 0;
       let startNodeY = 0;
+      let activePointerId = null;
 
-      el.addEventListener("mousedown", event => {
-        const tag = event.target.tagName;
+      function isDragBlocked(target) {
+        const tag = target.tagName;
         const isInteractive = ["INPUT", "TEXTAREA", "BUTTON", "SELECT", "LABEL"].includes(tag);
-        const isInsideNotes = event.target.closest(".notes-panel");
-        const isInsideApproval = event.target.closest(".approval-popover") || event.target.closest(".approval-main-btn");
+        const isInsideNotes = target.closest(".notes-panel");
+        const isInsideApproval = target.closest(".approval-popover") || target.closest(".approval-main-btn");
+        const isInsideDetailButton = target.closest(".pavojk-detail-btn") || target.closest(".detail-btn");
+        const isInsideImage = target.closest(".image-area");
 
-        if (isInteractive || isInsideNotes || isInsideApproval) return;
+        return isInteractive || isInsideNotes || isInsideApproval || isInsideDetailButton || isInsideImage;
+      }
 
-        event.preventDefault();
+      el.addEventListener("pointerdown", event => {
+        if (event.pointerType === "touch" && event.isPrimary === false) return;
+        if (isDragBlocked(event.target)) return;
 
         const project = getCurrentProject();
-        const node = project.nodes.find(item => item.id === nodeId);
+        const node = project?.nodes?.find(item => item.id === nodeId);
+        if (!node) return;
+
+        event.preventDefault();
+        event.stopPropagation();
 
         isDragging = true;
+        hasMoved = false;
+        activePointerId = event.pointerId;
         selectedNodeId = nodeId;
-        startMouseX = event.clientX;
-        startMouseY = event.clientY;
+        startPointerX = event.clientX;
+        startPointerY = event.clientY;
         startNodeX = node.x;
         startNodeY = node.y;
+
+        oneFingerPanState = null;
+
+        document.querySelectorAll(".node").forEach(item => item.classList.remove("selected"));
+        el.classList.add("selected");
+
+        try {
+          el.setPointerCapture(event.pointerId);
+        } catch (error) {
+          console.warn("Pointer capture selhal:", error);
+        }
 
         document.body.style.cursor = "grabbing";
       });
 
-      window.addEventListener("mousemove", event => {
-        if (!isDragging) return;
+      el.addEventListener("pointermove", event => {
+        if (!isDragging || event.pointerId !== activePointerId) return;
 
         const project = getCurrentProject();
-        const node = project.nodes.find(item => item.id === nodeId);
-        const zoom = app.zoom || 1;
+        const node = project?.nodes?.find(item => item.id === nodeId);
+        if (!node) return;
 
-        const deltaX = (event.clientX - startMouseX) / zoom;
-        const deltaY = (event.clientY - startMouseY) / zoom;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const zoom = app.zoom || 1;
+        const deltaX = (event.clientX - startPointerX) / zoom;
+        const deltaY = (event.clientY - startPointerY) / zoom;
+
+        if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+          hasMoved = true;
+        }
 
         node.x = Math.round(startNodeX + deltaX);
         node.y = Math.round(startNodeY + deltaY);
@@ -3846,16 +4205,24 @@
         renderConnections();
       });
 
-      window.addEventListener("mouseup", () => {
+      async function finishDrag(event) {
         if (!isDragging) return;
+        if (event && event.pointerId !== activePointerId) return;
 
         isDragging = false;
+        activePointerId = null;
         document.body.style.cursor = "";
 
         const project = getCurrentProject();
-        project.updatedAt = new Date().toISOString();
-        saveApp();
-      });
+        if (project && hasMoved) {
+          project.updatedAt = new Date().toISOString();
+          await saveApp();
+        }
+      }
+
+      el.addEventListener("pointerup", finishDrag);
+      el.addEventListener("pointercancel", finishDrag);
+      el.addEventListener("lostpointercapture", finishDrag);
     }
 
     function renderNotesCalendar(project) {
@@ -4831,7 +5198,7 @@
       });
     }
 
-    function saveCurrentDetail() {
+    async function saveCurrentDetail() {
       const project = getCurrentProject();
 
       if (activeCalendarNote) {
@@ -4843,7 +5210,7 @@
             note.title = titleInput.value.trim() || "Nová poznámka";
           }
           project.updatedAt = new Date().toISOString();
-          saveApp();
+          await saveApp();
           showToast("Poznámka uložena.");
         }
 
@@ -4860,7 +5227,7 @@
             dayDetail.title = titleInput.value.trim() || ("Detail dne " + formatTimelineDate(activeCalendarDay.date));
           }
           project.updatedAt = new Date().toISOString();
-          saveApp();
+          await saveApp();
           showToast("Detail dne uložen.");
         }
 
@@ -4872,7 +5239,7 @@
       if (node) {
         node.detail = detailEditorText.value;
         project.updatedAt = new Date().toISOString();
-        saveApp();
+        await saveApp();
         showToast("Detail uložen.");
       }
 
@@ -5226,6 +5593,10 @@
       await supabaseClient.auth.signOut();
       app.loggedIn = false;
       app.currentProjectId = null;
+      if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
       session = null;
       profile = null;
       if (adminRequestsButton) adminRequestsButton.classList.add("hidden");
@@ -5377,6 +5748,10 @@
 
         projectTypeModal.classList.add("hidden");
         openCurrentProject();
+
+        const firstCard = project.nodes?.[0]?.title || "Nová karta";
+        playDonkeyIntro(firstCard);
+
         await saveApp();
         showToast("Projekt vytvořen.");
       });
@@ -5508,30 +5883,18 @@
 
       if (activeCalendarNote) {
         const note = project?.notes?.find(item => item.id === activeCalendarNote.noteId);
-        if (!note) return;
-
-        note.detail = detailEditorText.value;
-        project.updatedAt = new Date().toISOString();
-        saveApp();
+        if (note) note.detail = detailEditorText.value;
         return;
       }
 
       if (activeCalendarDay) {
         const dayDetail = project?.dayDetails?.[activeCalendarDay.date];
-        if (!dayDetail) return;
-
-        dayDetail.detail = detailEditorText.value;
-        project.updatedAt = new Date().toISOString();
-        saveApp();
+        if (dayDetail) dayDetail.detail = detailEditorText.value;
         return;
       }
 
       const node = project?.nodes?.find(item => item.id === activeDetailNodeId);
-      if (!node) return;
-
-      node.detail = detailEditorText.value;
-      project.updatedAt = new Date().toISOString();
-      saveApp();
+      if (node) node.detail = detailEditorText.value;
     });
 
     detailImageInput.addEventListener("change", event => {
@@ -5652,7 +6015,7 @@
 
     function shouldIgnoreTouchPan(target) {
       return Boolean(target.closest(
-        "button,input,textarea,select,label,.modal-backdrop,.notes-panel,.approval-popover,.node-top,.title-input,.detail-input,.mini-btn,.add-branch,.delete-card-x,.bulb-button,.pavojk-detail-btn,.timeline-item,.calendar-note"
+        "button,input,textarea,select,label,.modal-backdrop,.notes-panel,.approval-popover,.node,.node-top,.title-input,.detail-input,.mini-btn,.add-branch,.delete-card-x,.bulb-button,.pavojk-detail-btn,.timeline-item,.calendar-note"
       ));
     }
 
