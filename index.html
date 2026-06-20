@@ -3387,34 +3387,38 @@
       return size;
     }
 
-    async function saveApp() {
-      if (!session?.user || isApplyingRemoteUpdate) return;
+    async function saveApp(options = {}) {
+      if (!session?.user || isApplyingRemoteUpdate) return true;
 
       try {
         const project = getCurrentProject();
 
-        if (project) {
-          lastLocalSaveAt = Date.now();
-          project.updatedAt = new Date().toISOString();
+        if (!project || !project.id) return true;
 
-          const { error } = await supabaseClient
-            .from("projects")
-            .update({
-              name: project.name,
-              type: project.type,
-              data: project,
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", project.id);
+        lastLocalSaveAt = Date.now();
+        project.updatedAt = new Date().toISOString();
 
-          if (error) {
-            console.warn("Uložení projektu do Supabase selhalo:", error);
-            showToast("Uložení selhalo.");
-          }
+        const { error } = await supabaseClient
+          .from("projects")
+          .update({
+            name: project.name,
+            type: project.type,
+            data: project,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", project.id);
+
+        if (error) {
+          console.warn("Uložení projektu do Supabase selhalo:", error);
+          if (options.showError) showToast("Uložení selhalo.");
+          return false;
         }
+
+        return true;
       } catch (error) {
         console.warn("Uložení selhalo:", error);
-        showToast("Uložení selhalo.");
+        if (options.showError) showToast("Uložení selhalo.");
+        return false;
       }
     }
 
@@ -3441,11 +3445,44 @@
     }
 
     function normalizeProjectRow(row) {
-      const project = row?.data || {};
+      const project = row?.data ? { ...row.data } : {};
       project.id = row.id;
       project.name = row.name || project.name || "Projekt";
       project.type = row.type || project.type || "imageMap";
+      project.updatedAt = row.updated_at || project.updatedAt || "";
+      project.createdAt = row.created_at || project.createdAt || "";
+      project.__loaded = Boolean(row.data);
       return project;
+    }
+
+    async function loadFullProject(projectId) {
+      const existingIndex = app.projects.findIndex(project => project.id === projectId);
+      const existing = app.projects[existingIndex];
+
+      if (existing?.__loaded) return existing;
+
+      const { data, error } = await supabaseClient
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .single();
+
+      if (error || !data) {
+        console.warn("Načtení projektu selhalo:", error);
+        showToast("Projekt se nepodařilo načíst.");
+        return null;
+      }
+
+      const fullProject = normalizeProjectRow(data);
+      fullProject.__loaded = true;
+
+      if (existingIndex >= 0) {
+        app.projects[existingIndex] = fullProject;
+      } else {
+        app.projects.push(fullProject);
+      }
+
+      return fullProject;
     }
 
     function handleRemoteProjectChange(payload) {
@@ -3544,7 +3581,7 @@
 
       const { data: rows, error } = await supabaseClient
         .from("projects")
-        .select("*")
+        .select("id,name,type,updated_at,created_at")
         .order("updated_at", { ascending: false });
 
       if (error) {
@@ -3722,7 +3759,7 @@
       });
     }
 
-    function openProjectFromCard(card, event) {
+    async function openProjectFromCard(card, event) {
       if (event) {
         event.preventDefault();
       }
@@ -3730,21 +3767,19 @@
       const projectId = card?.dataset?.projectId;
       if (!projectId) return;
 
-      const project = app.projects.find(item => item.id === projectId);
+      const project = await loadFullProject(projectId);
       if (!project) return;
 
       app.currentProjectId = projectId;
       openCurrentProject();
-
-      try {
-        saveApp();
-      } catch (error) {
-        console.warn("Uložení při otevření projektu selhalo:", error);
-      }
     }
 
 
     function getProjectMeta(project) {
+      if (!project.__loaded) {
+        return `Klikni pro otevření projektu`;
+      }
+
       if (project.type === "timeline") {
         const rows = Array.isArray(project.rows) ? project.rows.length : 0;
         const items = Array.isArray(project.rows)
@@ -5381,7 +5416,7 @@
             note.title = titleInput.value.trim() || "Nová poznámka";
           }
           project.updatedAt = new Date().toISOString();
-          await saveApp();
+          await saveApp({ showError: true });
           showToast("Poznámka uložena.");
         }
 
@@ -5398,7 +5433,7 @@
             dayDetail.title = titleInput.value.trim() || ("Detail dne " + formatTimelineDate(activeCalendarDay.date));
           }
           project.updatedAt = new Date().toISOString();
-          await saveApp();
+          await saveApp({ showError: true });
           showToast("Detail dne uložen.");
         }
 
@@ -5410,7 +5445,7 @@
       if (node) {
         node.detail = detailEditorText.value;
         project.updatedAt = new Date().toISOString();
-        await saveApp();
+        await saveApp({ showError: true });
         showToast("Detail uložen.");
       }
 
@@ -6093,7 +6128,7 @@
         detailInput.value = node.detail;
       }
 
-      await saveApp();
+      await saveApp({ showError: true });
       closeImageDetailModal();
       showToast("Detail obrázku uložen.");
     }
