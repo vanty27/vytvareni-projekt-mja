@@ -2862,6 +2862,101 @@
       }
     }
 
+
+    /* IMAGE REPLACE + DETAIL GALLERY v16 */
+    .image-detail-extra-box {
+      padding: 14px 18px 0;
+      border-top: 1px solid #e3ebf5;
+      background: #fbfdff;
+    }
+
+    .image-detail-extra-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #334155;
+      margin-bottom: 10px;
+    }
+
+    .image-detail-extra-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    .image-detail-extra-item {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      min-height: 76px;
+    }
+
+    .image-detail-extra-item img {
+      width: 100%;
+      height: 84px;
+      display: block;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .image-detail-extra-item button {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .94);
+      border: 1px solid #ffd0d0;
+      color: #d11;
+      font-weight: 950;
+      padding: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .image-detail-extra-empty {
+      grid-column: 1 / -1;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 14px;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    .image-detail-extra-upload {
+      width: 100%;
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 12px;
+    }
+
+    .image-map-change-hint {
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 6px;
+      font-weight: 750;
+    }
+
+    @media (max-width: 768px) {
+      .image-detail-extra-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-height: 260px;
+      }
+
+      .image-detail-extra-item img {
+        height: 112px;
+      }
+    }
+
   </style>
 </head>
 
@@ -2986,6 +3081,16 @@
             <span>Text se ukládá ke kartě v obrázkové mapě.</span>
           </div>
           <textarea id="imageDetailText" class="image-info-text" placeholder="Sem napiš informace k tomuto obrázku, co je hotovo, co se má upravit, poznámky pro IT..."></textarea>
+
+          <div id="imageDetailExtraBox" class="image-detail-extra-box">
+            <div class="image-detail-extra-title">Další obrázky k detailu</div>
+            <div id="imageDetailExtraGrid" class="image-detail-extra-grid"></div>
+            <label class="secondary-btn image-detail-extra-upload">
+              + Přidat další obrázek
+              <input id="imageDetailExtraInput" type="file" accept="image/*" multiple hidden />
+            </label>
+          </div>
+
           <div class="image-info-actions">
             <button id="saveImageDetailButton" class="primary-btn" type="button">Uložit</button>
           </div>
@@ -3168,6 +3273,9 @@
     const imageInfoSide = document.getElementById("imageInfoSide");
     const imageDetailText = document.getElementById("imageDetailText");
     const saveImageDetailButton = document.getElementById("saveImageDetailButton");
+    const imageDetailExtraBox = document.getElementById("imageDetailExtraBox");
+    const imageDetailExtraGrid = document.getElementById("imageDetailExtraGrid");
+    const imageDetailExtraInput = document.getElementById("imageDetailExtraInput");
 
     const exportAllButton = document.getElementById("exportAllButton");
     const importAllInput = document.getElementById("importAllInput");
@@ -3880,7 +3988,7 @@
 
             <div class="node-button-row">
               <label class="mini-btn" style="display:grid; place-items:center; cursor:pointer;">
-                Nahrát
+                ${node.image ? "Změnit obrázek" : "Nahrát"}
                 <input class="file-input upload-input" type="file" accept="image/*" />
               </label>
               <button class="mini-btn detail-btn">Detail obrázku</button>
@@ -3992,6 +4100,11 @@
             const imageArea = el.querySelector(".image-area");
             if (imageArea) {
               imageArea.innerHTML = `<img src="${node.image}" alt="${escapeHtml(node.title || "")}" />`;
+            }
+
+            const uploadLabel = uploadInput.closest("label");
+            if (uploadLabel) {
+              uploadLabel.childNodes[0].textContent = "Změnit obrázek";
             }
 
             uploadInput.value = "";
@@ -5234,6 +5347,7 @@
           modalImage.src = image.src;
           imageDetailText.value = "";
           imageInfoSide.classList.add("hidden");
+          if (imageDetailExtraBox) imageDetailExtraBox.classList.add("hidden");
           imageModal.classList.remove("hidden");
         });
       });
@@ -5367,6 +5481,64 @@
       }
     }
 
+
+    function getActiveImageDetailNode() {
+      const project = getCurrentProject();
+      return project?.nodes?.find(item => item.id === activeImageDetailNodeId) || null;
+    }
+
+    function renderImageDetailExtraImages(node) {
+      if (!imageDetailExtraGrid) return;
+
+      const images = Array.isArray(node.detailImages) ? node.detailImages : [];
+      node.detailImages = images;
+
+      if (images.length === 0) {
+        imageDetailExtraGrid.innerHTML = `<div class="image-detail-extra-empty">Zatím nejsou přidané žádné další obrázky.</div>`;
+        return;
+      }
+
+      imageDetailExtraGrid.innerHTML = images.map((src, index) => `
+        <div class="image-detail-extra-item">
+          <img src="${src}" alt="Další obrázek ${index + 1}" />
+          <button data-index="${index}" title="Smazat obrázek">×</button>
+        </div>
+      `).join("");
+
+      imageDetailExtraGrid.querySelectorAll(".image-detail-extra-item img").forEach(image => {
+        image.addEventListener("click", () => {
+          modalImage.src = image.src;
+        });
+      });
+
+      imageDetailExtraGrid.querySelectorAll(".image-detail-extra-item button").forEach(button => {
+        button.addEventListener("click", async event => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const activeNode = getActiveImageDetailNode();
+          if (!activeNode) return;
+
+          activeNode.detailImages.splice(Number(button.dataset.index), 1);
+          const project = getCurrentProject();
+          if (project) project.updatedAt = new Date().toISOString();
+
+          renderImageDetailExtraImages(activeNode);
+          await saveApp();
+          showToast("Obrázek odstraněn.");
+        });
+      });
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     function openImageDetail(nodeId) {
       const project = getCurrentProject();
       const node = project.nodes.find(item => item.id === nodeId);
@@ -5382,6 +5554,8 @@
       modalImage.src = node.image;
       imageDetailText.value = node.detail || "";
       imageInfoSide.classList.remove("hidden");
+      if (imageDetailExtraBox) imageDetailExtraBox.classList.remove("hidden");
+      renderImageDetailExtraImages(node);
       imageModal.classList.remove("hidden");
     }
 
@@ -5899,6 +6073,8 @@
       activeImageDetailNodeId = null;
       imageDetailText.value = "";
       imageInfoSide.classList.remove("hidden");
+      if (imageDetailExtraBox) imageDetailExtraBox.classList.remove("hidden");
+      if (imageDetailExtraGrid) imageDetailExtraGrid.innerHTML = "";
     }
 
     async function saveImageDetailAndClose() {
@@ -5936,6 +6112,31 @@
     });
 
     saveImageDetailButton.addEventListener("click", saveImageDetailAndClose);
+
+    imageDetailExtraInput.addEventListener("change", async event => {
+      const files = Array.from(event.target.files || []);
+      const node = getActiveImageDetailNode();
+
+      if (!node || files.length === 0) return;
+
+      if (!Array.isArray(node.detailImages)) {
+        node.detailImages = [];
+      }
+
+      for (const file of files) {
+        const dataUrl = await readFileAsDataUrl(file);
+        node.detailImages.push(dataUrl);
+      }
+
+      const project = getCurrentProject();
+      if (project) project.updatedAt = new Date().toISOString();
+
+      renderImageDetailExtraImages(node);
+      await saveApp();
+
+      imageDetailExtraInput.value = "";
+      showToast("Další obrázky přidány.");
+    });
 
     closeDetailEditorButton.addEventListener("click", closeLargeDetailEditor);
     saveDetailButton.addEventListener("click", saveCurrentDetail);
