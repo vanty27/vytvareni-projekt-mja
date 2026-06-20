@@ -2833,6 +2833,35 @@
       content: "";
     }
 
+
+    /* ZOOM + IMAGE DETAIL SAVE v15 */
+    .image-info-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+
+    .image-info-actions .primary-btn {
+      min-width: 130px;
+    }
+
+    @media (max-width: 768px) {
+      .image-info-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 12px 0 0;
+      }
+
+      .image-info-actions .primary-btn {
+        width: 100%;
+        height: 48px;
+      }
+    }
+
   </style>
 </head>
 
@@ -2957,6 +2986,9 @@
             <span>Text se ukládá ke kartě v obrázkové mapě.</span>
           </div>
           <textarea id="imageDetailText" class="image-info-text" placeholder="Sem napiš informace k tomuto obrázku, co je hotovo, co se má upravit, poznámky pro IT..."></textarea>
+          <div class="image-info-actions">
+            <button id="saveImageDetailButton" class="primary-btn" type="button">Uložit</button>
+          </div>
         </aside>
       </div>
     </div>
@@ -3135,6 +3167,7 @@
     const closeModalButton = document.getElementById("closeModalButton");
     const imageInfoSide = document.getElementById("imageInfoSide");
     const imageDetailText = document.getElementById("imageDetailText");
+    const saveImageDetailButton = document.getElementById("saveImageDetailButton");
 
     const exportAllButton = document.getElementById("exportAllButton");
     const importAllInput = document.getElementById("importAllInput");
@@ -5098,21 +5131,45 @@
       });
     }
 
+    function clampZoom(value) {
+      return Math.min(2.2, Math.max(0.25, value));
+    }
+
     function applyZoom() {
       const zoom = app.zoom || 1;
       boardWrap.style.transform = `scale(${zoom})`;
       zoomValue.textContent = Math.round(zoom * 100) + "%";
-      saveApp();
+    }
+
+    function zoomToPoint(newZoom, clientX, clientY) {
+      const oldZoom = app.zoom || 1;
+      const clampedZoom = clampZoom(newZoom);
+
+      const rect = workspace.getBoundingClientRect();
+      const pointX = clientX - rect.left;
+      const pointY = clientY - rect.top;
+
+      const worldX = (workspace.scrollLeft + pointX) / oldZoom;
+      const worldY = (workspace.scrollTop + pointY) / oldZoom;
+
+      app.zoom = clampedZoom;
+      applyZoom();
+
+      workspace.scrollLeft = worldX * clampedZoom - pointX;
+      workspace.scrollTop = worldY * clampedZoom - pointY;
+    }
+
+    function zoomToWorkspaceCenter(newZoom) {
+      const rect = workspace.getBoundingClientRect();
+      zoomToPoint(newZoom, rect.left + rect.width / 2, rect.top + rect.height / 2);
     }
 
     function zoomBy(delta) {
-      app.zoom = Math.min(2.2, Math.max(0.25, (app.zoom || 1) + delta));
-      applyZoom();
+      zoomToWorkspaceCenter((app.zoom || 1) + delta);
     }
 
     function resetZoom() {
-      app.zoom = 1;
-      applyZoom();
+      zoomToWorkspaceCenter(1);
     }
 
     function fitToContent() {
@@ -5834,13 +5891,36 @@
     zoomResetButton.addEventListener("click", resetZoom);
     fitButton.addEventListener("click", fitToContent);
 
-    closeModalButton.addEventListener("click", () => {
+    closeModalButton.addEventListener("click", closeImageDetailModal);
+
+    function closeImageDetailModal() {
       imageModal.classList.add("hidden");
       modalImage.src = "";
       activeImageDetailNodeId = null;
       imageDetailText.value = "";
       imageInfoSide.classList.remove("hidden");
-    });
+    }
+
+    async function saveImageDetailAndClose() {
+      const project = getCurrentProject();
+      const node = project?.nodes?.find(item => item.id === activeImageDetailNodeId);
+      if (!node) {
+        closeImageDetailModal();
+        return;
+      }
+
+      node.detail = imageDetailText.value;
+      project.updatedAt = new Date().toISOString();
+
+      const detailInput = document.querySelector(`.node[data-id="${activeImageDetailNodeId}"] .detail-input`);
+      if (detailInput) {
+        detailInput.value = node.detail;
+      }
+
+      await saveApp();
+      closeImageDetailModal();
+      showToast("Detail obrázku uložen.");
+    }
 
     imageDetailText.addEventListener("input", () => {
       const project = getCurrentProject();
@@ -5848,14 +5928,14 @@
       if (!node) return;
 
       node.detail = imageDetailText.value;
-      project.updatedAt = new Date().toISOString();
-      saveApp();
 
       const detailInput = document.querySelector(`.node[data-id="${activeImageDetailNodeId}"] .detail-input`);
       if (detailInput) {
         detailInput.value = node.detail;
       }
     });
+
+    saveImageDetailButton.addEventListener("click", saveImageDetailAndClose);
 
     closeDetailEditorButton.addEventListener("click", closeLargeDetailEditor);
     saveDetailButton.addEventListener("click", saveCurrentDetail);
@@ -5954,11 +6034,7 @@
 
     imageModal.addEventListener("click", event => {
       if (event.target === imageModal) {
-        imageModal.classList.add("hidden");
-        modalImage.src = "";
-        activeImageDetailNodeId = null;
-        imageDetailText.value = "";
-        imageInfoSide.classList.remove("hidden");
+        closeImageDetailModal();
       }
     });
 
@@ -5990,24 +6066,6 @@
         x: (touches[0].clientX + touches[1].clientX) / 2,
         y: (touches[0].clientY + touches[1].clientY) / 2
       };
-    }
-
-    function zoomToPoint(newZoom, centerX, centerY) {
-      const oldZoom = app.zoom || 1;
-      const clampedZoom = Math.min(2.2, Math.max(0.25, newZoom));
-
-      const rect = workspace.getBoundingClientRect();
-      const pointX = centerX - rect.left;
-      const pointY = centerY - rect.top;
-
-      const worldX = (workspace.scrollLeft + pointX) / oldZoom;
-      const worldY = (workspace.scrollTop + pointY) / oldZoom;
-
-      app.zoom = clampedZoom;
-      applyZoom();
-
-      workspace.scrollLeft = worldX * clampedZoom - pointX;
-      workspace.scrollTop = worldY * clampedZoom - pointY;
     }
 
 
@@ -6069,7 +6127,9 @@
         if (!currentDistance) return;
 
         const center = getTouchCenter(event.touches);
-        const nextZoom = pinchZoomState.zoom * (currentDistance / pinchZoomState.distance);
+        const rawRatio = currentDistance / pinchZoomState.distance;
+        const dampedRatio = 1 + (rawRatio - 1) * 0.62;
+        const nextZoom = pinchZoomState.zoom * dampedRatio;
 
         zoomToPoint(nextZoom, center.x, center.y);
       }
@@ -6094,17 +6154,18 @@
       if (!event.ctrlKey) return;
 
       event.preventDefault();
-      const delta = event.deltaY > 0 ? -0.08 : 0.08;
-      zoomBy(delta);
+
+      const oldZoom = app.zoom || 1;
+      const rawFactor = 1 - event.deltaY * 0.0012;
+      const factor = Math.min(1.045, Math.max(0.955, rawFactor));
+      const nextZoom = oldZoom * factor;
+
+      zoomToPoint(nextZoom, event.clientX, event.clientY);
     }, { passive: false });
 
     window.addEventListener("keydown", event => {
       if (event.key === "Escape") {
-        imageModal.classList.add("hidden");
-        modalImage.src = "";
-        activeImageDetailNodeId = null;
-        imageDetailText.value = "";
-        imageInfoSide.classList.remove("hidden");
+        closeImageDetailModal();
         closeLargeDetailEditor();
         closeTimelineItemModal();
       }
