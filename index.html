@@ -2960,13 +2960,6 @@
 
 
     /* REALTIME CHAT NOTES v20 */
-    .note-author-line {
-      color: #475569;
-      font-size: 13px;
-      font-weight: 900;
-      padding: 0 2px;
-    }
-
     .notes-typing {
       min-height: 18px;
       color: #64748b;
@@ -3499,6 +3492,11 @@
           colorClass: "note-color-karel",
           avatar: "K"
         },
+        "karel.novosad@seznam,cz": {
+          name: "Karel",
+          colorClass: "note-color-karel",
+          avatar: "K"
+        },
         "hoangova.iva@gmail.com": {
           name: "Ivča",
           colorClass: "note-color-ivca",
@@ -3514,7 +3512,7 @@
     }
 
     function getCurrentChatUser() {
-      const email = normalizeEmail(session?.user?.email || profile?.email || document.getElementById("loginEmail")?.value || "");
+      const email = normalizeEmail(session?.user?.email || profile?.email || "");
       const user = getUserInfoByEmail(email);
 
       return {
@@ -4248,7 +4246,6 @@
               </div>
               <div class="notes-list"></div>
               <div class="notes-form">
-                <div class="note-author-line">Píšeš jako ${escapeHtml(getCurrentChatUser().name)}</div>
                 <textarea class="note-text" placeholder="Napiš poznámku..."></textarea>
                 <div class="notes-typing"></div>
                 <button class="primary-btn add-note-btn" style="height:44px;">Odeslat poznámku</button>
@@ -4320,7 +4317,6 @@
             </div>
             <div class="notes-list"></div>
             <div class="notes-form">
-              <div class="note-author-line">Píšeš jako ${escapeHtml(getCurrentChatUser().name)}</div>
               <textarea class="note-text" placeholder="Napiš poznámku..."></textarea>
               <div class="notes-typing"></div>
               <button class="primary-btn add-note-btn" style="height:44px;">Odeslat poznámku</button>
