@@ -3048,6 +3048,24 @@
       background: #2563eb;
     }
 
+
+    .editable-project-title {
+      padding: 8px 10px;
+      border-radius: 12px;
+      outline: none;
+      cursor: text;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .editable-project-title:hover {
+      background: #f1f6ff;
+    }
+
+    .editable-project-title:focus {
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
   </style>
 </head>
 
@@ -3121,7 +3139,7 @@
   <section id="mapScreen" class="screen map-screen hidden">
     <header class="app-header">
       <button id="backToProjectsButton" class="icon-btn" title="Zpět">←</button>
-      <div id="currentProjectTitle" class="map-title">Projekt</div>
+      <div id="currentProjectTitle" class="map-title editable-project-title" contenteditable="true" spellcheck="false" title="Klikni a přepiš název projektu">Projekt</div>
 
       <button id="addRootCardButton" class="secondary-btn">+ Hlavní karta</button>
       <button id="exportPdfButton" class="secondary-btn">Export PDF</button>
@@ -4147,6 +4165,29 @@
 
       document.body.appendChild(intro);
       setTimeout(() => intro.remove(), 2850);
+    }
+
+
+    async function saveCurrentProjectTitle() {
+      const project = getCurrentProject();
+      if (!project || !currentProjectTitle) return;
+
+      const newName = currentProjectTitle.textContent.trim();
+
+      if (!newName) {
+        currentProjectTitle.textContent = project.name || "Projekt";
+        showToast("Název projektu nesmí být prázdný.");
+        return;
+      }
+
+      if (newName === project.name) return;
+
+      project.name = newName;
+      project.updatedAt = new Date().toISOString();
+
+      await saveApp({ showError: true });
+      renderProjects();
+      showToast("Název projektu uložen.");
     }
 
     function openCurrentProject() {
@@ -6456,6 +6497,26 @@
     zoomInButton.addEventListener("click", () => zoomBy(0.1));
     zoomResetButton.addEventListener("click", resetZoom);
     fitButton.addEventListener("click", fitToContent);
+
+    currentProjectTitle.addEventListener("blur", () => {
+      saveCurrentProjectTitle();
+    });
+
+    currentProjectTitle.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        currentProjectTitle.blur();
+      }
+
+      if (event.key === "Escape") {
+        const project = getCurrentProject();
+        if (project) {
+          currentProjectTitle.textContent = project.name || "Projekt";
+        }
+        currentProjectTitle.blur();
+      }
+    });
+
 
     closeModalButton.addEventListener("click", closeImageDetailModal);
 
