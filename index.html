@@ -2958,6 +2958,59 @@
       }
     }
 
+
+    /* REALTIME CHAT NOTES v20 */
+    .note-author-line {
+      color: #475569;
+      font-size: 13px;
+      font-weight: 900;
+      padding: 0 2px;
+    }
+
+    .notes-typing {
+      min-height: 18px;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 850;
+      padding: 0 2px;
+    }
+
+    .note-content.note-color-vlada {
+      background: #fff3df;
+      border-color: #ffd7a8;
+    }
+
+    .note-avatar.note-color-vlada {
+      background: #f59e0b;
+    }
+
+    .note-content.note-color-karel {
+      background: #edf8d8;
+      border-color: #cfe9a4;
+    }
+
+    .note-avatar.note-color-karel {
+      background: #79a83b;
+    }
+
+    .note-content.note-color-ivca {
+      background: #eaf5ff;
+      border-color: #c8e4ff;
+    }
+
+    .note-avatar.note-color-ivca {
+      background: #3b82f6;
+    }
+
+    .note-content.note-color-default {
+      background: #eef4ff;
+      border-color: #d9e5f8;
+    }
+
+    .note-avatar.note-color-default {
+      background: #2563eb;
+    }
+
   </style>
 </head>
 
@@ -3327,6 +3380,9 @@
     let realtimeChannel = null;
     let isApplyingRemoteUpdate = false;
     let lastLocalSaveAt = 0;
+    const chatTypingState = new Map();
+    const localTypingTimers = new Map();
+    let lastTypingSentAt = 0;
 
     let selectedNodeId = null;
 
@@ -3424,11 +3480,230 @@
     }
 
 
+
+    function normalizeEmail(value) {
+      return String(value || "").trim().toLowerCase().replace(",", ".");
+    }
+
+    function getUserInfoByEmail(emailValue) {
+      const email = normalizeEmail(emailValue);
+
+      const users = {
+        "v.antonyuk95@gmail.com": {
+          name: "Vláďa",
+          colorClass: "note-color-vlada",
+          avatar: "V"
+        },
+        "karel.novosad@seznam.cz": {
+          name: "Karel",
+          colorClass: "note-color-karel",
+          avatar: "K"
+        },
+        "hoangova.iva@gmail.com": {
+          name: "Ivča",
+          colorClass: "note-color-ivca",
+          avatar: "I"
+        }
+      };
+
+      return users[email] || {
+        name: email || "Uživatel",
+        colorClass: "note-color-default",
+        avatar: getInitial(email || "?")
+      };
+    }
+
+    function getCurrentChatUser() {
+      const email = normalizeEmail(session?.user?.email || profile?.email || document.getElementById("loginEmail")?.value || "");
+      const user = getUserInfoByEmail(email);
+
+      return {
+        ...user,
+        email
+      };
+    }
+
+    function getNoteAuthor(note) {
+      const email = normalizeEmail(note.authorEmail || note.email || "");
+      const mapped = getUserInfoByEmail(email);
+
+      return {
+        email,
+        name: note.authorName || mapped.name,
+        avatar: note.authorAvatar || mapped.avatar || getInitial(email),
+        colorClass: note.authorColorClass || mapped.colorClass || "note-color-default"
+      };
+    }
+
+    function getNodeElement(nodeId) {
+      return boardWrap.querySelector(`.node[data-id="${nodeId}"]`);
+    }
+
+    function updateNotesCounter(nodeId) {
+      const project = getCurrentProject();
+      const node = project?.nodes?.find(item => item.id === nodeId);
+      const el = getNodeElement(nodeId);
+      if (!node || !el) return;
+
+      const notesCount = Array.isArray(node.notes) ? node.notes.length : 0;
+      const bulbButton = el.querySelector(".bulb-button");
+
+      if (bulbButton) {
+        bulbButton.dataset.count = notesCount;
+        bulbButton.classList.toggle("has-notes", notesCount > 0);
+      }
+    }
+
+    function renderOpenNodeNotes(nodeId) {
+      const project = getCurrentProject();
+      const node = project?.nodes?.find(item => item.id === nodeId);
+      const el = getNodeElement(nodeId);
+
+      if (!node || !el) return;
+
+      renderNodeNotes(el, node);
+      updateNotesCounter(nodeId);
+      updateTypingIndicator(project.id, nodeId);
+    }
+
+    function sendRealtimeNote(projectId, nodeId, note) {
+      if (!realtimeChannel) return;
+
+      realtimeChannel.send({
+        type: "broadcast",
+        event: "note_added",
+        payload: {
+          projectId,
+          nodeId,
+          note
+        }
+      }).catch(error => {
+        console.warn("Realtime odeslání poznámky selhalo:", error);
+      });
+    }
+
+    function sendTypingState(projectId, nodeId, isTyping) {
+      if (!realtimeChannel || !projectId || !nodeId) return;
+
+      const now = Date.now();
+      if (isTyping && now - lastTypingSentAt < 700) return;
+      if (isTyping) lastTypingSentAt = now;
+
+      const user = getCurrentChatUser();
+
+      realtimeChannel.send({
+        type: "broadcast",
+        event: "typing",
+        payload: {
+          projectId,
+          nodeId,
+          isTyping,
+          email: user.email,
+          name: user.name,
+          colorClass: user.colorClass,
+          sentAt: new Date().toISOString()
+        }
+      }).catch(error => {
+        console.warn("Realtime typing selhal:", error);
+      });
+    }
+
+    function updateTypingIndicator(projectId, nodeId) {
+      const el = getNodeElement(nodeId);
+      const typingElement = el?.querySelector(".notes-typing");
+      if (!typingElement) return;
+
+      const currentEmail = getCurrentChatUser().email;
+      const names = [];
+
+      chatTypingState.forEach((value, key) => {
+        if (value.projectId === projectId && value.nodeId === nodeId && value.email !== currentEmail) {
+          names.push(value.name);
+        }
+      });
+
+      if (names.length === 0) {
+        typingElement.textContent = "";
+      } else if (names.length === 1) {
+        typingElement.textContent = `${names[0]} píše`;
+      } else {
+        typingElement.textContent = `${names.join(", ")} píšou`;
+      }
+    }
+
+    function handleRealtimeTyping(payload) {
+      if (!payload?.projectId || !payload?.nodeId || !payload?.email) return;
+
+      const currentEmail = getCurrentChatUser().email;
+      const email = normalizeEmail(payload.email);
+      if (email === currentEmail) return;
+
+      const key = `${payload.projectId}:${payload.nodeId}:${email}`;
+
+      if (!payload.isTyping) {
+        const old = chatTypingState.get(key);
+        if (old?.timer) clearTimeout(old.timer);
+        chatTypingState.delete(key);
+        updateTypingIndicator(payload.projectId, payload.nodeId);
+        return;
+      }
+
+      const old = chatTypingState.get(key);
+      if (old?.timer) clearTimeout(old.timer);
+
+      const timer = setTimeout(() => {
+        chatTypingState.delete(key);
+        updateTypingIndicator(payload.projectId, payload.nodeId);
+      }, 2500);
+
+      chatTypingState.set(key, {
+        projectId: payload.projectId,
+        nodeId: payload.nodeId,
+        email,
+        name: payload.name || getUserInfoByEmail(email).name,
+        timer
+      });
+
+      updateTypingIndicator(payload.projectId, payload.nodeId);
+    }
+
+    function handleRealtimeNoteAdded(payload) {
+      if (!payload?.projectId || !payload?.nodeId || !payload?.note) return;
+      if (app.currentProjectId !== payload.projectId) return;
+
+      const project = getCurrentProject();
+      const node = project?.nodes?.find(item => item.id === payload.nodeId);
+      if (!node) return;
+
+      if (!Array.isArray(node.notes)) {
+        node.notes = [];
+      }
+
+      const alreadyExists = node.notes.some(note => note.id === payload.note.id);
+      if (!alreadyExists) {
+        node.notes.push(payload.note);
+      }
+
+      renderOpenNodeNotes(payload.nodeId);
+
+      const el = getNodeElement(payload.nodeId);
+      if (el?.classList.contains("notes-open")) {
+        const list = el.querySelector(".notes-list");
+        if (list) list.scrollTop = list.scrollHeight;
+      }
+    }
+
     function setupRealtimeSync() {
       if (realtimeChannel || !session?.user) return;
 
       realtimeChannel = supabaseClient
-        .channel("mja-projects-realtime")
+        .channel("mja-projects-realtime", {
+          config: {
+            broadcast: {
+              self: false
+            }
+          }
+        })
         .on(
           "postgres_changes",
           {
@@ -3440,6 +3715,12 @@
             handleRemoteProjectChange(payload);
           }
         )
+        .on("broadcast", { event: "note_added" }, ({ payload }) => {
+          handleRealtimeNoteAdded(payload);
+        })
+        .on("broadcast", { event: "typing" }, ({ payload }) => {
+          handleRealtimeTyping(payload);
+        })
         .subscribe(status => {
           console.log("Realtime sync:", status);
         });
@@ -3967,8 +4248,9 @@
               </div>
               <div class="notes-list"></div>
               <div class="notes-form">
-                <input class="note-email" type="email" placeholder="Tvůj email" value="${escapeHtml(document.getElementById("loginEmail").value || "")}" />
+                <div class="note-author-line">Píšeš jako ${escapeHtml(getCurrentChatUser().name)}</div>
                 <textarea class="note-text" placeholder="Napiš poznámku..."></textarea>
+                <div class="notes-typing"></div>
                 <button class="primary-btn add-note-btn" style="height:44px;">Odeslat poznámku</button>
               </div>
             </div>
@@ -4038,8 +4320,9 @@
             </div>
             <div class="notes-list"></div>
             <div class="notes-form">
-              <input class="note-email" type="email" placeholder="Tvůj email" value="${escapeHtml(document.getElementById("loginEmail").value || "")}" />
+              <div class="note-author-line">Píšeš jako ${escapeHtml(getCurrentChatUser().name)}</div>
               <textarea class="note-text" placeholder="Napiš poznámku..."></textarea>
+              <div class="notes-typing"></div>
               <button class="primary-btn add-note-btn" style="height:44px;">Odeslat poznámku</button>
             </div>
           </div>
@@ -4093,7 +4376,6 @@
       const notesPanel = el.querySelector(".notes-panel");
       const notesCloseButton = el.querySelector(".notes-close");
       const addNoteButton = el.querySelector(".add-note-btn");
-      const noteEmailInput = el.querySelector(".note-email");
       const noteTextInput = el.querySelector(".note-text");
 
       renderNodeNotes(el, node);
@@ -4249,11 +4531,10 @@
         event.preventDefault();
         event.stopPropagation();
 
-        const email = noteEmailInput.value.trim();
         const text = noteTextInput.value.trim();
 
-        if (!email || !text) {
-          showToast("Vyplň email i poznámku.");
+        if (!text) {
+          showToast("Napiš poznámku.");
           return;
         }
 
@@ -4269,18 +4550,28 @@
           currentNode.notes = [];
         }
 
-        currentNode.notes.push({
+        const author = getCurrentChatUser();
+        const note = {
           id: generateId(),
-          email,
+          email: author.email,
+          authorEmail: author.email,
+          authorName: author.name,
+          authorAvatar: author.avatar,
+          authorColorClass: author.colorClass,
           text,
           createdAt: new Date().toISOString()
-        });
+        };
+
+        currentNode.notes.push(note);
 
         noteTextInput.value = "";
         currentProject.updatedAt = new Date().toISOString();
 
+        sendTypingState(currentProject.id, currentNode.id, false);
+        sendRealtimeNote(currentProject.id, currentNode.id, note);
+
         try {
-          saveApp();
+          await saveApp({ showError: true });
         } catch (error) {
           console.warn("Uložení poznámky selhalo:", error);
         }
@@ -4288,19 +4579,41 @@
         await sendTelegramCommentNotification({
           projectName: currentProject.title || currentProject.name || "Bez názvu",
           cardTitle: currentNode.title || "Bez názvu karty",
-          email,
+          email: author.email,
           text
         });
 
-        renderNodeNotes(el, currentNode);
+        renderOpenNodeNotes(currentNode.id);
 
-        const notesCount = currentNode.notes.length;
-        bulbButton.dataset.count = notesCount;
-        bulbButton.classList.toggle("has-notes", notesCount > 0);
         notesPanel.classList.remove("hidden-panel");
         el.classList.add("notes-open");
 
         showToast("Poznámka přidána.");
+      });
+
+
+
+      noteTextInput.addEventListener("input", () => {
+        const currentProject = getCurrentProject();
+        const currentNode = currentProject?.nodes?.find(item => item.id === nodeId);
+        if (!currentProject || !currentNode) return;
+
+        const key = `${currentProject.id}:${currentNode.id}`;
+        const isTyping = noteTextInput.value.trim().length > 0;
+
+        sendTypingState(currentProject.id, currentNode.id, isTyping);
+
+        const oldTimer = localTypingTimers.get(key);
+        if (oldTimer) clearTimeout(oldTimer);
+
+        if (isTyping) {
+          const timer = setTimeout(() => {
+            sendTypingState(currentProject.id, currentNode.id, false);
+            localTypingTimers.delete(key);
+          }, 1800);
+
+          localTypingTimers.set(key, timer);
+        }
       });
 
       setupDragging(el, nodeId);
@@ -4981,19 +5294,21 @@
       }
 
       list.innerHTML = notes.map(note => {
-        const initial = getInitial(note.email);
+        const author = getNoteAuthor(note);
         const date = formatShortDate(note.createdAt);
 
         return `
           <div class="note-bubble">
-            <div class="note-avatar">${escapeHtml(initial)}</div>
-            <div class="note-content">
-              <div class="note-meta">${escapeHtml(note.email || "")} · ${escapeHtml(date)}</div>
+            <div class="note-avatar ${escapeHtml(author.colorClass)}">${escapeHtml(author.avatar || getInitial(author.email))}</div>
+            <div class="note-content ${escapeHtml(author.colorClass)}">
+              <div class="note-meta">${escapeHtml(author.name || author.email || "Uživatel")} · ${escapeHtml(date)}</div>
               <div>${escapeHtml(note.text || "")}</div>
             </div>
           </div>
         `;
       }).join("");
+
+      list.scrollTop = list.scrollHeight;
     }
 
     function getInitial(email) {
