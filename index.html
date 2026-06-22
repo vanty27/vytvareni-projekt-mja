@@ -189,25 +189,12 @@
       min-width: 0;
     }
 
-    .brand-mark {
+    .brand-logo {
       width: 34px;
       height: 34px;
-      border-radius: 999px;
-      background: #2563eb;
-      position: relative;
+      object-fit: contain;
+      display: block;
       flex: 0 0 auto;
-      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
-    }
-
-    .brand-mark::after {
-      content: "";
-      position: absolute;
-      width: 25px;
-      height: 25px;
-      border-radius: 999px;
-      background: white;
-      right: -4px;
-      top: 4px;
     }
 
     .brand-name {
@@ -3100,7 +3087,7 @@
   <section id="projectsScreen" class="screen hidden">
     <header class="app-header">
       <div class="app-title app-brand">
-        <div class="brand-mark" aria-hidden="true"></div>
+        <img class="brand-logo" src="my-jobs-agent-logo.png" alt="MY JOBS AGENT logo" />
         <div class="brand-name">MY <span>JOBS</span> AGENT</div>
         <div class="brand-section">VÝVOJ</div>
       </div>
