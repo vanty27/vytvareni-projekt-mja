@@ -3125,6 +3125,13 @@
       }
     }
 
+
+    /* NOTE FORMATTING v29 */
+    .note-message {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
   </style>
 </head>
 
@@ -5582,7 +5589,7 @@
             <div class="note-avatar ${escapeHtml(author.colorClass)}">${escapeHtml(author.avatar || getInitial(author.email))}</div>
             <div class="note-content ${escapeHtml(author.colorClass)}">
               <div class="note-meta">${escapeHtml(author.name || author.email || "Uživatel")} · ${escapeHtml(date)}</div>
-              <div>${escapeHtml(note.text || "")}</div>
+              <div class="note-message">${escapeHtml(note.text || "")}</div>
             </div>
           </div>
         `;
