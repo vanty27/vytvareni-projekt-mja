@@ -181,6 +181,61 @@
       margin-right: auto;
     }
 
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: auto;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: #2563eb;
+      position: relative;
+      flex: 0 0 auto;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 25px;
+      height: 25px;
+      border-radius: 999px;
+      background: white;
+      right: -4px;
+      top: 4px;
+    }
+
+    .brand-name {
+      color: #172033;
+      font-size: 19px;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .brand-name span {
+      color: #2563eb;
+    }
+
+    .brand-section {
+      margin-left: 8px;
+      padding-left: 12px;
+      border-left: 1px solid #dbe4ef;
+      color: #172033;
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+
     .projects-page {
       height: calc(100vh - 72px);
       overflow: auto;
@@ -189,7 +244,7 @@
     }
 
     .projects-hero {
-      max-width: 1280px;
+      max-width: 1480px;
       margin: 0 auto 10px;
       text-align: center;
     }
@@ -218,7 +273,7 @@
     }
 
     .projects-toolbar {
-      max-width: 1280px;
+      max-width: 1480px;
       margin: 18px auto 22px;
       display: flex;
       align-items: center;
@@ -227,10 +282,10 @@
     }
 
     .project-grid {
-      max-width: 1280px;
+      max-width: 1480px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0;
       background: white;
       border: 1px solid var(--border);
@@ -275,33 +330,35 @@
     }
 
     .project-card {
-      background: white;
-      border: 1px solid #dbe4ef;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      border: 1px solid rgba(37, 99, 235, 0.38);
       border-radius: 18px;
       min-height: 88px;
       padding: 16px 18px;
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
       display: flex;
       flex-direction: column;
       justify-content: center;
       transition: 0.15s ease;
       cursor: pointer;
+      color: white;
     }
 
     .project-card:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow);
-      border-color: #bfd0e8;
+      box-shadow: 0 16px 34px rgba(37, 99, 235, 0.26);
+      border-color: rgba(255, 255, 255, 0.5);
     }
 
     .project-card h3 {
       margin: 0;
       font-size: 22px;
       letter-spacing: -0.04em;
+      color: white;
     }
 
     .project-meta {
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.82);
       font-size: 13px;
       margin-top: 6px;
       line-height: 1.45;
@@ -319,7 +376,7 @@
     }
 
     .empty-projects {
-      max-width: 1280px;
+      max-width: 1480px;
       margin: 0 auto 18px;
       padding: 20px 22px;
       border-radius: 22px;
@@ -340,7 +397,7 @@
       margin: 0;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 900px) {
       .project-grid {
         grid-template-columns: 1fr;
       }
@@ -3042,7 +3099,11 @@
   <!-- PROJECTS SCREEN -->
   <section id="projectsScreen" class="screen hidden">
     <header class="app-header">
-      <div class="app-title">My Jobs Agent – projekty</div>
+      <div class="app-title app-brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-name">MY <span>JOBS</span> AGENT</div>
+        <div class="brand-section">VÝVOJ</div>
+      </div>
       <button id="adminRequestsButton" class="secondary-btn hidden">Žádosti</button>
       <button id="logoutButton" class="secondary-btn">Odhlásit</button>
     </header>
