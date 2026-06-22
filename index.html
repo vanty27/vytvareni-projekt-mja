@@ -4126,11 +4126,8 @@
         if (project.type === "timeline" || project.type === "notesCalendar") {
           workspace.scrollLeft = 0;
           workspace.scrollTop = 0;
-        } else if (isMobileViewport()) {
-          mobileFitOnOpen();
         } else {
-          workspace.scrollLeft = 1650;
-          workspace.scrollTop = 380;
+          fitToContent();
         }
       }, 0);
     }
