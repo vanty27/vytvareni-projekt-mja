@@ -3066,6 +3066,65 @@
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
     }
 
+
+    /* IMAGE DETAIL EXPAND v27 */
+    .modal-image-placeholder {
+      color: #64748b;
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.45;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .image-info-header-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .image-info-header-row strong {
+      margin-right: auto;
+    }
+
+    .image-info-expand-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: #eef4ff;
+      color: #12386f;
+      border: 1px solid #d8e5fb;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 950;
+      display: grid;
+      place-items: center;
+    }
+
+    .image-info-expand-btn:hover {
+      background: #e3edff;
+    }
+
+    .image-info-side.image-notes-expanded .image-detail-extra-box {
+      display: none;
+    }
+
+    .image-info-side.image-notes-expanded .image-info-text {
+      min-height: calc(72vh - 190px);
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .image-info-side.image-notes-expanded .image-info-actions {
+      margin-top: auto;
+    }
+
+    @media (max-width: 900px) {
+      .image-info-side.image-notes-expanded .image-info-text {
+        min-height: 52vh;
+      }
+    }
+
   </style>
 </head>
 
@@ -3186,11 +3245,18 @@
       <div class="modal-body">
         <div class="modal-image-side">
           <img id="modalImage" alt="Detail obrázku" />
+          <div id="modalImagePlaceholder" class="modal-image-placeholder hidden">
+            Zatím není nahraný hlavní obrázek.<br />
+            Vpravo můžeš napsat detail nebo přidat další obrázky.
+          </div>
         </div>
 
         <aside id="imageInfoSide" class="image-info-side">
           <div class="image-info-header">
-            <strong>Info k obrázku</strong>
+            <div class="image-info-header-row">
+              <strong>Info k obrázku</strong>
+              <button id="toggleImageInfoExpandButton" class="image-info-expand-btn" type="button" title="Rozšířit poznámku">⤢</button>
+            </div>
             <span>Text se ukládá ke kartě v obrázkové mapě.</span>
           </div>
           <textarea id="imageDetailText" class="image-info-text" placeholder="Sem napiš informace k tomuto obrázku, co je hotovo, co se má upravit, poznámky pro IT..."></textarea>
@@ -3382,6 +3448,7 @@
     const imageModal = document.getElementById("imageModal");
     const modalTitle = document.getElementById("modalTitle");
     const modalImage = document.getElementById("modalImage");
+    const modalImagePlaceholder = document.getElementById("modalImagePlaceholder");
     const closeModalButton = document.getElementById("closeModalButton");
     const imageInfoSide = document.getElementById("imageInfoSide");
     const imageDetailText = document.getElementById("imageDetailText");
@@ -3389,6 +3456,7 @@
     const imageDetailExtraBox = document.getElementById("imageDetailExtraBox");
     const imageDetailExtraGrid = document.getElementById("imageDetailExtraGrid");
     const imageDetailExtraInput = document.getElementById("imageDetailExtraInput");
+    const toggleImageInfoExpandButton = document.getElementById("toggleImageInfoExpandButton");
 
     const exportAllButton = document.getElementById("exportAllButton");
     const importAllInput = document.getElementById("importAllInput");
@@ -5175,8 +5243,11 @@
           activeImageDetailNodeId = null;
           modalTitle.textContent = (target.title || "Detail") + " – obrázek " + (index + 1);
           modalImage.src = image.src;
+          modalImage.classList.remove("hidden");
+          if (modalImagePlaceholder) modalImagePlaceholder.classList.add("hidden");
           imageDetailText.value = "";
           imageInfoSide.classList.add("hidden");
+          imageInfoSide.classList.remove("image-notes-expanded");
           imageModal.classList.remove("hidden");
         });
       });
@@ -5218,8 +5289,11 @@
           activeImageDetailNodeId = null;
           modalTitle.textContent = (note.title || "Poznámka") + " – obrázek " + (index + 1);
           modalImage.src = image.src;
+          modalImage.classList.remove("hidden");
+          if (modalImagePlaceholder) modalImagePlaceholder.classList.add("hidden");
           imageDetailText.value = "";
           imageInfoSide.classList.add("hidden");
+          imageInfoSide.classList.remove("image-notes-expanded");
           imageModal.classList.remove("hidden");
         });
       });
@@ -6101,16 +6175,26 @@
       const node = project.nodes.find(item => item.id === nodeId);
       if (!node) return;
 
-      if (!node.image) {
-        showToast("Tahle karta zatím nemá obrázek.");
-        return;
-      }
-
       activeImageDetailNodeId = nodeId;
       modalTitle.textContent = node.title || "Detail obrázku";
-      modalImage.src = node.image;
+
+      if (node.image) {
+        modalImage.src = node.image;
+        modalImage.classList.remove("hidden");
+        if (modalImagePlaceholder) modalImagePlaceholder.classList.add("hidden");
+      } else {
+        modalImage.src = "";
+        modalImage.classList.add("hidden");
+        if (modalImagePlaceholder) modalImagePlaceholder.classList.remove("hidden");
+      }
+
       imageDetailText.value = node.detail || "";
       imageInfoSide.classList.remove("hidden");
+      imageInfoSide.classList.remove("image-notes-expanded");
+      if (toggleImageInfoExpandButton) {
+        toggleImageInfoExpandButton.textContent = "⤢";
+        toggleImageInfoExpandButton.title = "Rozšířit poznámku";
+      }
       if (imageDetailExtraBox) imageDetailExtraBox.classList.remove("hidden");
       renderImageDetailExtraImages(node);
       imageModal.classList.remove("hidden");
@@ -6650,8 +6734,15 @@
       activeImageDetailNodeId = null;
       imageDetailText.value = "";
       imageInfoSide.classList.remove("hidden");
+      imageInfoSide.classList.remove("image-notes-expanded");
+      if (toggleImageInfoExpandButton) {
+        toggleImageInfoExpandButton.textContent = "⤢";
+        toggleImageInfoExpandButton.title = "Rozšířit poznámku";
+      }
       if (imageDetailExtraBox) imageDetailExtraBox.classList.remove("hidden");
       if (imageDetailExtraGrid) imageDetailExtraGrid.innerHTML = "";
+      if (modalImagePlaceholder) modalImagePlaceholder.classList.add("hidden");
+      modalImage.classList.remove("hidden");
     }
 
     async function saveImageDetailAndClose() {
@@ -6689,6 +6780,20 @@
     });
 
     saveImageDetailButton.addEventListener("click", saveImageDetailAndClose);
+
+
+    toggleImageInfoExpandButton.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      imageInfoSide.classList.toggle("image-notes-expanded");
+      const expanded = imageInfoSide.classList.contains("image-notes-expanded");
+
+      toggleImageInfoExpandButton.textContent = expanded ? "⤡" : "⤢";
+      toggleImageInfoExpandButton.title = expanded ? "Zmenšit poznámku" : "Rozšířit poznámku";
+      imageDetailText.focus();
+    });
+
 
     imageDetailExtraInput.addEventListener("change", async event => {
       const files = Array.from(event.target.files || []);
