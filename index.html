@@ -4800,7 +4800,7 @@
         el.classList.remove("notes-open");
       });
 
-      addNoteButton.addEventListener("click", async event => {
+      addNoteButton.addEventListener("click", event => {
         event.preventDefault();
         event.stopPropagation();
 
@@ -4836,32 +4836,32 @@
         };
 
         currentNode.notes.push(note);
-
         noteTextInput.value = "";
         currentProject.updatedAt = new Date().toISOString();
 
+        // Okamžité lokální vykreslení bez čekání na Supabase / Telegram.
+        renderOpenNodeNotes(currentNode.id);
+        notesPanel.classList.remove("hidden-panel");
+        el.classList.add("notes-open");
+        showToast("Poznámka přidána.");
+
+        // Okamžité odeslání ostatním uživatelům přes realtime broadcast.
         sendTypingState(currentProject.id, currentNode.id, false);
         sendRealtimeNote(currentProject.id, currentNode.id, note);
 
-        try {
-          await saveApp({ showError: true });
-        } catch (error) {
+        // Ukládání a Telegram běží na pozadí, aby chat nepůsobil pomalu.
+        saveApp({ showError: true }).catch(error => {
           console.warn("Uložení poznámky selhalo:", error);
-        }
+        });
 
-        await sendTelegramCommentNotification({
+        sendTelegramCommentNotification({
           projectName: currentProject.title || currentProject.name || "Bez názvu",
           cardTitle: currentNode.title || "Bez názvu karty",
           email: author.email,
           text
+        }).catch(error => {
+          console.warn("Telegram upozornění selhalo:", error);
         });
-
-        renderOpenNodeNotes(currentNode.id);
-
-        notesPanel.classList.remove("hidden-panel");
-        el.classList.add("notes-open");
-
-        showToast("Poznámka přidána.");
       });
 
 
