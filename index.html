@@ -3442,6 +3442,9 @@
     const chatTypingState = new Map();
     const localTypingTimers = new Map();
     let lastTypingSentAt = 0;
+    const REALTIME_CLIENT_ID = generateId();
+    let lastMoveBroadcastAt = 0;
+    let remoteProjectReloadTimer = null;
 
     let selectedNodeId = null;
 
@@ -3530,6 +3533,10 @@
           return false;
         }
 
+        if (options.broadcast !== false) {
+          sendProjectSaved(project);
+        }
+
         return true;
       } catch (error) {
         console.warn("Uložení selhalo:", error);
@@ -3538,6 +3545,132 @@
       }
     }
 
+
+
+
+    function sendProjectSaved(project) {
+      if (!realtimeChannel || !project?.id) return;
+
+      realtimeChannel.send({
+        type: "broadcast",
+        event: "project_saved",
+        payload: {
+          projectId: project.id,
+          updatedAt: project.updatedAt || new Date().toISOString(),
+          sourceClientId: REALTIME_CLIENT_ID
+        }
+      }).catch(error => {
+        console.warn("Realtime projekt update selhal:", error);
+      });
+    }
+
+    function sendRealtimeNodeMove(projectId, node) {
+      if (!realtimeChannel || !projectId || !node?.id) return;
+
+      const now = Date.now();
+      if (now - lastMoveBroadcastAt < 45) return;
+      lastMoveBroadcastAt = now;
+
+      realtimeChannel.send({
+        type: "broadcast",
+        event: "node_move",
+        payload: {
+          projectId,
+          nodeId: node.id,
+          x: node.x,
+          y: node.y,
+          sourceClientId: REALTIME_CLIENT_ID
+        }
+      }).catch(error => {
+        console.warn("Realtime posun karty selhal:", error);
+      });
+    }
+
+    function preserveMapViewport(callback) {
+      const scrollLeft = workspace.scrollLeft;
+      const scrollTop = workspace.scrollTop;
+      const zoom = app.zoom || 1;
+
+      callback();
+
+      app.zoom = zoom;
+      applyZoom();
+      workspace.scrollLeft = scrollLeft;
+      workspace.scrollTop = scrollTop;
+    }
+
+    async function reloadProjectFromRealtime(projectId) {
+      if (!projectId) return;
+
+      const shouldRenderCurrent = app.currentProjectId === projectId;
+      const openNotesNodeId = shouldRenderCurrent ? document.querySelector(".node.notes-open")?.dataset?.id : null;
+
+      const project = await loadFullProject(projectId, true, { silent: true });
+      if (!project) return;
+
+      if (shouldRenderCurrent) {
+        isApplyingRemoteUpdate = true;
+
+        preserveMapViewport(() => {
+          currentProjectTitle.textContent = project.name || "Projekt";
+          renderMap();
+        });
+
+        if (openNotesNodeId) {
+          const nodeEl = getNodeElement(openNotesNodeId);
+          const node = project.nodes?.find(item => item.id === openNotesNodeId);
+
+          if (nodeEl && node) {
+            nodeEl.classList.add("notes-open");
+            const panel = nodeEl.querySelector(".notes-panel");
+            if (panel) panel.classList.remove("hidden-panel");
+            renderOpenNodeNotes(openNotesNodeId);
+          }
+        }
+
+        isApplyingRemoteUpdate = false;
+      } else {
+        renderProjects();
+      }
+    }
+
+    function scheduleRealtimeProjectReload(projectId) {
+      if (remoteProjectReloadTimer) {
+        clearTimeout(remoteProjectReloadTimer);
+      }
+
+      remoteProjectReloadTimer = setTimeout(() => {
+        reloadProjectFromRealtime(projectId);
+      }, 180);
+    }
+
+    function handleRealtimeProjectSaved(payload) {
+      if (!payload?.projectId) return;
+      if (payload.sourceClientId === REALTIME_CLIENT_ID) return;
+
+      scheduleRealtimeProjectReload(payload.projectId);
+    }
+
+    function handleRealtimeNodeMove(payload) {
+      if (!payload?.projectId || !payload?.nodeId) return;
+      if (payload.sourceClientId === REALTIME_CLIENT_ID) return;
+      if (app.currentProjectId !== payload.projectId) return;
+
+      const project = getCurrentProject();
+      const node = project?.nodes?.find(item => item.id === payload.nodeId);
+      if (!node) return;
+
+      node.x = Number(payload.x);
+      node.y = Number(payload.y);
+
+      const el = getNodeElement(payload.nodeId);
+      if (el) {
+        el.style.left = node.x + "px";
+        el.style.top = node.y + "px";
+      }
+
+      renderConnections();
+    }
 
 
     function normalizeEmail(value) {
@@ -3785,6 +3918,12 @@
         .on("broadcast", { event: "typing" }, ({ payload }) => {
           handleRealtimeTyping(payload);
         })
+        .on("broadcast", { event: "project_saved" }, ({ payload }) => {
+          handleRealtimeProjectSaved(payload);
+        })
+        .on("broadcast", { event: "node_move" }, ({ payload }) => {
+          handleRealtimeNodeMove(payload);
+        })
         .subscribe(status => {
           console.log("Realtime sync:", status);
         });
@@ -3801,11 +3940,11 @@
       return project;
     }
 
-    async function loadFullProject(projectId) {
+    async function loadFullProject(projectId, force = false, options = {}) {
       const existingIndex = app.projects.findIndex(project => project.id === projectId);
       const existing = app.projects[existingIndex];
 
-      if (existing?.__loaded) return existing;
+      if (existing?.__loaded && !force) return existing;
 
       const { data, error } = await supabaseClient
         .from("projects")
@@ -3815,7 +3954,7 @@
 
       if (error || !data) {
         console.warn("Načtení projektu selhalo:", error);
-        showToast("Projekt se nepodařilo načíst.");
+        if (!options.silent) showToast("Projekt se nepodařilo načíst.");
         return null;
       }
 
@@ -3854,6 +3993,11 @@
         return;
       }
 
+      if (app.currentProjectId === row.id) {
+        scheduleRealtimeProjectReload(row.id);
+        return;
+      }
+
       const incomingProject = normalizeProjectRow(payload.new);
       const index = app.projects.findIndex(project => project.id === incomingProject.id);
 
@@ -3863,28 +4007,7 @@
         app.projects.push(incomingProject);
       }
 
-      if (app.currentProjectId === incomingProject.id) {
-        const activeElement = document.activeElement;
-        const isEditingText = activeElement && ["INPUT", "TEXTAREA"].includes(activeElement.tagName);
-
-        // Když právě někdo píše do pole, nepřekreslíme mu ho pod rukama.
-        if (isEditingText) return;
-
-        isApplyingRemoteUpdate = true;
-
-        const scrollLeft = workspace.scrollLeft;
-        const scrollTop = workspace.scrollTop;
-
-        renderMap();
-
-        workspace.scrollLeft = scrollLeft;
-        workspace.scrollTop = scrollTop;
-
-        isApplyingRemoteUpdate = false;
-        showToast("Projekt aktualizován.");
-      } else {
-        renderProjects();
-      }
+      renderProjects();
     }
 
     async function loadApp() {
@@ -4780,6 +4903,7 @@
         el.style.top = node.y + "px";
 
         renderConnections();
+        sendRealtimeNodeMove(project.id, node);
       });
 
       async function finishDrag(event) {
