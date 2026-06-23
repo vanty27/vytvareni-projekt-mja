@@ -3523,6 +3523,11 @@
     let remoteProjectReloadTimer = null;
     let projectSyncTimer = null;
     let projectSyncInProgress = false;
+    let saveInProgress = false;
+    let savePending = false;
+    let pendingSaveShowError = false;
+    let pendingSaveBroadcast = false;
+    let activeSavePromise = Promise.resolve(true);
 
     let selectedNodeId = null;
 
@@ -3588,43 +3593,112 @@
       return size;
     }
 
+    function cloneProjectForSave(project) {
+      return JSON.parse(JSON.stringify(project));
+    }
+
+    async function saveCurrentProjectOnce() {
+      const project = getCurrentProject();
+
+      if (!project || !project.id) return true;
+
+      const savedAt = new Date().toISOString();
+      project.updatedAt = savedAt;
+      lastLocalSaveAt = Date.now();
+
+      const snapshot = cloneProjectForSave(project);
+      snapshot.updatedAt = savedAt;
+
+      const { error } = await supabaseClient
+        .from("projects")
+        .update({
+          name: snapshot.name,
+          type: snapshot.type,
+          data: snapshot,
+          updated_at: savedAt
+        })
+        .eq("id", snapshot.id);
+
+      if (error) {
+        console.warn("Uložení projektu do Supabase selhalo:", error);
+        return false;
+      }
+
+      return true;
+    }
+
+    async function runSaveQueue() {
+      if (saveInProgress) return activeSavePromise;
+
+      saveInProgress = true;
+
+      let ok = true;
+      let shouldShowError = false;
+      let shouldBroadcast = false;
+
+      while (savePending) {
+        savePending = false;
+
+        const showErrorForThisSave = pendingSaveShowError;
+        const broadcastForThisSave = pendingSaveBroadcast;
+
+        pendingSaveShowError = false;
+        pendingSaveBroadcast = false;
+
+        shouldShowError = shouldShowError || showErrorForThisSave;
+        shouldBroadcast = shouldBroadcast || broadcastForThisSave;
+
+        let saved = false;
+
+        for (let attempt = 1; attempt <= 4; attempt += 1) {
+          saved = await saveCurrentProjectOnce();
+
+          if (saved) break;
+
+          if (attempt < 4) {
+            await wait(300 * attempt);
+          }
+        }
+
+        if (!saved) {
+          ok = false;
+          break;
+        }
+      }
+
+      saveInProgress = false;
+
+      if (ok && shouldBroadcast) {
+        sendProjectSaved(getCurrentProject());
+      }
+
+      if (!ok && shouldShowError) {
+        showToast("Uložení selhalo.");
+      }
+
+      if (savePending && ok) {
+        activeSavePromise = runSaveQueue();
+        return activeSavePromise;
+      }
+
+      return ok;
+    }
+
     async function saveApp(options = {}) {
       if (!session?.user || isApplyingRemoteUpdate) return true;
 
-      try {
-        const project = getCurrentProject();
+      const project = getCurrentProject();
+      if (!project || !project.id) return true;
 
-        if (!project || !project.id) return true;
+      savePending = true;
+      pendingSaveShowError = pendingSaveShowError || !!options.showError;
+      pendingSaveBroadcast = pendingSaveBroadcast || options.broadcast !== false;
 
-        lastLocalSaveAt = Date.now();
-        project.updatedAt = new Date().toISOString();
-
-        const { error } = await supabaseClient
-          .from("projects")
-          .update({
-            name: project.name,
-            type: project.type,
-            data: project,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", project.id);
-
-        if (error) {
-          console.warn("Uložení projektu do Supabase selhalo:", error);
-          if (options.showError) showToast("Uložení selhalo.");
-          return false;
-        }
-
-        if (options.broadcast !== false) {
-          sendProjectSaved(project);
-        }
-
-        return true;
-      } catch (error) {
-        console.warn("Uložení selhalo:", error);
-        if (options.showError) showToast("Uložení selhalo.");
-        return false;
+      if (!saveInProgress) {
+        activeSavePromise = runSaveQueue();
       }
+
+      return activeSavePromise;
     }
 
     async function saveAppWithRetry(options = {}, attempts = 3) {
@@ -3637,7 +3711,7 @@
         if (ok) return true;
 
         if (attempt < attempts) {
-          await wait(350 * attempt);
+          await wait(400 * attempt);
         }
       }
 
@@ -4004,6 +4078,25 @@
 
       renderOpenNodeNotes(node.id);
       return dbNote;
+    }
+
+
+    async function deleteCardComments(projectId, nodeId) {
+      if (!projectId || !nodeId) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from("card_comments")
+          .delete()
+          .eq("project_id", projectId)
+          .eq("node_id", nodeId);
+
+        if (error) {
+          console.warn("Smazání komentářů karty selhalo:", error);
+        }
+      } catch (error) {
+        console.warn("Smazání komentářů karty selhalo:", error);
+      }
     }
 
     function handleRealtimeDbComment(payload) {
@@ -4665,23 +4758,11 @@
       if (project.type === "timeline") {
         renderTimelineProject(project);
 
-        try {
-          saveApp();
-        } catch (error) {
-          console.warn("Uložení časové osy selhalo:", error);
-        }
-
         return;
       }
 
       if (project.type === "notesCalendar") {
         renderNotesCalendar(project);
-
-        try {
-          saveApp();
-        } catch (error) {
-          console.warn("Uložení poznámkového bloku selhalo:", error);
-        }
 
         return;
       }
@@ -4938,6 +5019,7 @@
           node.titleColor = button.dataset.color;
           project.updatedAt = new Date().toISOString();
           renderMap();
+          saveApp({ showError: true });
           showToast("Barva změněna.");
         });
       });
@@ -4969,6 +5051,7 @@
 
             project.updatedAt = new Date().toISOString();
             renderMap();
+            saveApp({ showError: true });
           });
         });
       }
@@ -5866,6 +5949,7 @@
       project.updatedAt = new Date().toISOString();
       selectedNodeId = newNode.id;
       renderMap();
+      saveApp({ showError: true });
       showToast("Nová větev přidána.");
     }
 
@@ -5889,6 +5973,7 @@
 
       project.updatedAt = new Date().toISOString();
       renderMap();
+      saveApp({ showError: true });
       showToast("Hlavní karta přidána.");
     }
 
@@ -5940,10 +6025,11 @@
       selectedNodeId = newNode.id;
       project.updatedAt = new Date().toISOString();
       renderMap();
+      saveApp({ showError: true });
       showToast("Mezikarta přidána.");
     }
 
-    function deleteNode(nodeId) {
+    async function deleteNode(nodeId) {
       const project = getCurrentProject();
       if (!project) return;
 
@@ -5981,6 +6067,15 @@
 
       project.updatedAt = new Date().toISOString();
       renderMap();
+
+      const saved = await saveAppWithRetry({ showError: true }, 4);
+
+      if (!saved) {
+        showToast("Karta zmizela lokálně, ale smazání se nepodařilo uložit.");
+        return;
+      }
+
+      await deleteCardComments(project.id, nodeId);
 
       if (incomingEdges.length && outgoingEdges.length) {
         showToast("Karta smazána a spojení přepojeno.");
@@ -6285,7 +6380,7 @@
 
         project.notes = (project.notes || []).filter(item => item.id !== activeCalendarNote.noteId);
         project.updatedAt = new Date().toISOString();
-        saveApp();
+        saveAppWithRetry({ showError: true }, 4);
         closeLargeDetailEditor();
         showToast("Poznámka smazána.");
         return;
@@ -6300,7 +6395,7 @@
         }
 
         project.updatedAt = new Date().toISOString();
-        saveApp();
+        saveAppWithRetry({ showError: true }, 4);
         closeLargeDetailEditor();
         showToast("Detail dne smazán.");
         return;
@@ -6311,13 +6406,20 @@
       const confirmed = confirm(`Opravdu smazat „${name}“?`);
       if (!confirmed) return;
 
-      project.nodes = (project.nodes || []).filter(item => item.id !== activeDetailNodeId);
-      project.edges = (project.edges || []).filter(edge => edge.from !== activeDetailNodeId && edge.to !== activeDetailNodeId);
+      const deletedNodeId = activeDetailNodeId;
+      project.nodes = (project.nodes || []).filter(item => item.id !== deletedNodeId);
+      project.edges = (project.edges || []).filter(edge => edge.from !== deletedNodeId && edge.to !== deletedNodeId);
       project.updatedAt = new Date().toISOString();
-      saveApp();
+      saveAppWithRetry({ showError: true }, 4).then(async saved => {
+        if (saved) {
+          await deleteCardComments(project.id, deletedNodeId);
+          showToast("Buňka smazána.");
+        } else {
+          showToast("Buňka zmizela lokálně, ale smazání se nepodařilo uložit.");
+        }
+      });
       closeLargeDetailEditor();
       renderMap();
-      showToast("Buňka smazána.");
     }
 
     function closeLargeDetailEditor() {
@@ -7044,7 +7146,7 @@
       if (project) project.updatedAt = new Date().toISOString();
 
       renderImageDetailExtraImages(node);
-      await saveApp();
+      await saveApp({ showError: true });
 
       imageDetailExtraInput.value = "";
       showToast("Další obrázky přidány.");
