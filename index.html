@@ -3597,19 +3597,46 @@
       return JSON.parse(JSON.stringify(project));
     }
 
+
+    function markProjectLoadedFromDb(project, updatedAt) {
+      if (!project) return;
+      project.updatedAt = updatedAt || project.updatedAt || "";
+      project.lastKnownUpdatedAt = project.updatedAt;
+    }
+
+    async function reloadProjectAfterSaveConflict(projectId) {
+      const project = await loadFullProject(projectId, true, { silent: true });
+      if (!project) return null;
+
+      markProjectLoadedFromDb(project, project.updatedAt);
+
+      if (app.currentProjectId === projectId) {
+        isApplyingRemoteUpdate = true;
+        preserveMapViewport(() => {
+          currentProjectTitle.textContent = project.name || "Projekt";
+          renderMap();
+        });
+        isApplyingRemoteUpdate = false;
+      } else {
+        renderProjects();
+      }
+
+      return project;
+    }
+
     async function saveCurrentProjectOnce() {
       const project = getCurrentProject();
 
       if (!project || !project.id) return true;
 
+      const previousKnownUpdatedAt = project.lastKnownUpdatedAt || project.updatedAt || null;
       const savedAt = new Date().toISOString();
-      project.updatedAt = savedAt;
-      lastLocalSaveAt = Date.now();
 
       const snapshot = cloneProjectForSave(project);
       snapshot.updatedAt = savedAt;
+      snapshot.lastKnownUpdatedAt = savedAt;
 
-      const { error } = await supabaseClient
+      let query = supabaseClient
         .from("projects")
         .update({
           name: snapshot.name,
@@ -3617,12 +3644,33 @@
           data: snapshot,
           updated_at: savedAt
         })
-        .eq("id", snapshot.id);
+        .eq("id", snapshot.id)
+        .select("id,updated_at");
+
+      // Ochrana proti přepsání novější verze starým prohlížečem.
+      // Pokud někdo jiný mezitím uložil novější verzi, tento update neproběhne.
+      if (previousKnownUpdatedAt) {
+        query = query.eq("updated_at", previousKnownUpdatedAt);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.warn("Uložení projektu do Supabase selhalo:", error);
         return false;
       }
+
+      if (!data || data.length === 0) {
+        console.warn("Uložení zastaveno: projekt byl mezitím změněn v jiném okně.");
+        await reloadProjectAfterSaveConflict(snapshot.id);
+        showToast("Projekt byl mezitím změněn jinde. Načítám aktuální verzi.");
+        return false;
+      }
+
+      const confirmedUpdatedAt = data[0].updated_at || savedAt;
+      project.updatedAt = confirmedUpdatedAt;
+      project.lastKnownUpdatedAt = confirmedUpdatedAt;
+      lastLocalSaveAt = Date.now();
 
       return true;
     }
@@ -3780,6 +3828,7 @@
 
       const project = await loadFullProject(projectId, true, { silent: true });
       if (!project) return;
+      markProjectLoadedFromDb(project, project.updatedAt);
 
       if (shouldRenderCurrent) {
         isApplyingRemoteUpdate = true;
@@ -4312,6 +4361,7 @@
       project.name = row.name || project.name || "Projekt";
       project.type = row.type || project.type || "imageMap";
       project.updatedAt = row.updated_at || project.updatedAt || "";
+      project.lastKnownUpdatedAt = project.updatedAt;
       project.createdAt = row.created_at || project.createdAt || "";
       project.__loaded = Boolean(row.data);
       return project;
