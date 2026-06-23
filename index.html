@@ -3512,6 +3512,7 @@
     let profile = null;
     let authMode = "login";
     let realtimeChannel = null;
+    let commentsChannel = null;
     let isApplyingRemoteUpdate = false;
     let lastLocalSaveAt = 0;
     const chatTypingState = new Map();
@@ -3520,6 +3521,8 @@
     const REALTIME_CLIENT_ID = generateId();
     let lastMoveBroadcastAt = 0;
     let remoteProjectReloadTimer = null;
+    let projectSyncTimer = null;
+    let projectSyncInProgress = false;
 
     let selectedNodeId = null;
 
@@ -3540,6 +3543,10 @@
       toast.textContent = message;
       toast.style.display = "block";
       setTimeout(() => toast.style.display = "none", 2200);
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     function estimateStoredSize(value) {
@@ -3618,6 +3625,23 @@
         if (options.showError) showToast("Uložení selhalo.");
         return false;
       }
+    }
+
+    async function saveAppWithRetry(options = {}, attempts = 3) {
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        const ok = await saveApp({
+          ...options,
+          showError: attempt === attempts && options.showError
+        });
+
+        if (ok) return true;
+
+        if (attempt < attempts) {
+          await wait(350 * attempt);
+        }
+      }
+
+      return false;
     }
 
 
@@ -3717,6 +3741,45 @@
       remoteProjectReloadTimer = setTimeout(() => {
         reloadProjectFromRealtime(projectId);
       }, 180);
+    }
+
+    function stopCurrentProjectAutoSync() {
+      if (projectSyncTimer) {
+        clearInterval(projectSyncTimer);
+        projectSyncTimer = null;
+      }
+    }
+
+    function startCurrentProjectAutoSync() {
+      stopCurrentProjectAutoSync();
+
+      projectSyncTimer = null;
+    }
+
+    async function checkCurrentProjectVersion() {
+      if (!session?.user || !app.currentProjectId || projectSyncInProgress) return;
+      if (Date.now() - lastLocalSaveAt < 900) return;
+
+      const project = getCurrentProject();
+      if (!project?.id) return;
+
+      projectSyncInProgress = true;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from("projects")
+          .select("updated_at")
+          .eq("id", project.id)
+          .single();
+
+        if (!error && data?.updated_at && data.updated_at !== project.updatedAt) {
+          await reloadProjectFromRealtime(project.id);
+        }
+      } catch (error) {
+        console.warn("Kontrola realtime změn selhala:", error);
+      } finally {
+        projectSyncInProgress = false;
+      }
     }
 
     function handleRealtimeProjectSaved(payload) {
@@ -3836,6 +3899,130 @@
       renderNodeNotes(el, node);
       updateNotesCounter(nodeId);
       updateTypingIndicator(project.id, nodeId);
+    }
+
+
+    function dbCommentToNote(comment) {
+      return {
+        id: String(comment.id),
+        email: normalizeEmail(comment.author_email),
+        authorEmail: normalizeEmail(comment.author_email),
+        authorName: comment.author_name,
+        authorAvatar: comment.author_avatar,
+        authorColorClass: comment.author_color_class,
+        text: comment.text || "",
+        createdAt: comment.created_at || new Date().toISOString(),
+        savedInDb: true
+      };
+    }
+
+    function ensureLocalNote(projectId, nodeId, note) {
+      const project = app.projects.find(item => item.id === projectId);
+      const node = project?.nodes?.find(item => item.id === nodeId);
+      if (!node) return false;
+
+      if (!Array.isArray(node.notes)) {
+        node.notes = [];
+      }
+
+      const exists = node.notes.some(item => String(item.id) === String(note.id));
+      if (!exists) {
+        node.notes.push(note);
+        node.notes.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+
+      return true;
+    }
+
+    async function loadNodeComments(projectId, nodeId) {
+      if (!projectId || !nodeId) return;
+
+      const { data, error } = await supabaseClient
+        .from("card_comments")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("node_id", nodeId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.warn("Načtení komentářů selhalo:", error);
+        return;
+      }
+
+      const project = app.projects.find(item => item.id === projectId);
+      const node = project?.nodes?.find(item => item.id === nodeId);
+      if (!node) return;
+
+      const oldNotes = Array.isArray(node.notes) ? node.notes : [];
+      const dbNotes = (data || []).map(dbCommentToNote);
+      const merged = [...oldNotes];
+
+      dbNotes.forEach(note => {
+        if (!merged.some(item => String(item.id) === String(note.id))) {
+          merged.push(note);
+        }
+      });
+
+      merged.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      node.notes = merged;
+
+      if (app.currentProjectId === projectId) {
+        renderOpenNodeNotes(nodeId);
+      }
+    }
+
+    async function insertRealtimeComment(project, node, note) {
+      const { data, error } = await supabaseClient
+        .from("card_comments")
+        .insert({
+          project_id: project.id,
+          node_id: node.id,
+          text: note.text,
+          author_email: note.authorEmail,
+          author_name: note.authorName,
+          author_avatar: note.authorAvatar,
+          author_color_class: note.authorColorClass
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.warn("Uložení komentáře do realtime tabulky selhalo:", error);
+        showToast("Komentář se nepodařilo uložit.");
+        return null;
+      }
+
+      const dbNote = dbCommentToNote(data);
+
+      // Nahradíme dočasné ID za skutečné DB ID, aby nevznikaly duplicity.
+      if (Array.isArray(node.notes)) {
+        const local = node.notes.find(item => item.id === note.id);
+        if (local) {
+          Object.assign(local, dbNote);
+        }
+      }
+
+      renderOpenNodeNotes(node.id);
+      return dbNote;
+    }
+
+    function handleRealtimeDbComment(payload) {
+      const row = payload?.new;
+      if (!row?.project_id || !row?.node_id) return;
+      if (app.currentProjectId !== row.project_id) return;
+
+      const note = dbCommentToNote(row);
+      const inserted = ensureLocalNote(row.project_id, row.node_id, note);
+
+      if (inserted) {
+        renderOpenNodeNotes(row.node_id);
+
+        const el = getNodeElement(row.node_id);
+        if (el?.classList.contains("notes-open")) {
+          const list = el.querySelector(".notes-list");
+          if (list) list.scrollTop = list.scrollHeight;
+        }
+      }
     }
 
     function sendRealtimeNote(projectId, nodeId, note) {
@@ -3963,10 +4150,32 @@
         const list = el.querySelector(".notes-list");
         if (list) list.scrollTop = list.scrollHeight;
       }
+
+      // Záložní srovnání se Supabase, kdyby se broadcast a uložená verze rozešly.
+      setTimeout(() => {
+        checkCurrentProjectVersion();
+      }, 1200);
     }
 
     function setupRealtimeSync() {
       if (realtimeChannel || !session?.user) return;
+
+      commentsChannel = supabaseClient
+        .channel("mja-card-comments-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "card_comments"
+          },
+          payload => {
+            handleRealtimeDbComment(payload);
+          }
+        )
+        .subscribe(status => {
+          console.log("Realtime comments:", status);
+        });
 
       realtimeChannel = supabaseClient
         .channel("mja-projects-realtime", {
@@ -4052,7 +4261,7 @@
       if (!row?.id) return;
 
       // Krátce ignorujeme vlastní echo po lokálním uložení, aby neblikala obrazovka.
-      if (Date.now() - lastLocalSaveAt < 700) return;
+      if (Date.now() - lastLocalSaveAt < 2000) return;
 
       if (payload.eventType === "DELETE") {
         app.projects = app.projects.filter(project => project.id !== row.id);
@@ -4392,6 +4601,7 @@
       const project = getCurrentProject();
 
       if (!project) {
+        stopCurrentProjectAutoSync();
         showScreen("projects");
         renderProjects();
         return;
@@ -4408,6 +4618,7 @@
       applyZoom();
       renderMap();
       showScreen("map");
+      startCurrentProjectAutoSync();
 
       setTimeout(() => {
         if (project.type === "timeline" || project.type === "notesCalendar") {
@@ -4659,6 +4870,7 @@
       const noteTextInput = el.querySelector(".note-text");
 
       renderNodeNotes(el, node);
+      loadNodeComments(project.id, node.id);
       if (notesPanel) {
         notesPanel.addEventListener("touchstart", event => event.stopPropagation(), { passive: true });
         notesPanel.addEventListener("touchmove", event => event.stopPropagation(), { passive: true });
@@ -4839,35 +5051,41 @@
           authorAvatar: author.avatar,
           authorColorClass: author.colorClass,
           text,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          pending: true
         };
 
         currentNode.notes.push(note);
         noteTextInput.value = "";
         currentProject.updatedAt = new Date().toISOString();
 
-        // Okamžité lokální vykreslení bez čekání na Supabase / Telegram.
+        // Okamžitě zobrazíme zprávu v chatu.
         renderOpenNodeNotes(currentNode.id);
         notesPanel.classList.remove("hidden-panel");
         el.classList.add("notes-open");
-        showToast("Poznámka přidána.");
-
-        // Okamžité odeslání ostatním uživatelům přes realtime broadcast.
         sendTypingState(currentProject.id, currentNode.id, false);
-        sendRealtimeNote(currentProject.id, currentNode.id, note);
 
-        // Ukládání a Telegram běží na pozadí, aby chat nepůsobil pomalu.
-        saveApp({ showError: true }).catch(error => {
-          console.warn("Uložení poznámky selhalo:", error);
-        });
+        // Skutečný realtime chat: INSERT do card_comments.
+        // Supabase Realtime pošle INSERT všem otevřeným prohlížečům hned.
+        insertRealtimeComment(currentProject, currentNode, note).then(dbNote => {
+          if (!dbNote) return;
 
-        sendTelegramCommentNotification({
-          projectName: currentProject.title || currentProject.name || "Bez názvu",
-          cardTitle: currentNode.title || "Bez názvu karty",
-          email: author.email,
-          text
+          sendTelegramCommentNotification({
+            projectName: currentProject.title || currentProject.name || "Bez názvu",
+            cardTitle: currentNode.title || "Bez názvu karty",
+            email: author.email,
+            text
+          }).catch(error => {
+            console.warn("Telegram upozornění selhalo:", error);
+          });
+
+          // Starý JSON projektu jen jemně dorovnáme kvůli zpětné kompatibilitě.
+          saveApp({ showError: false }).catch(error => {
+            console.warn("Uložení poznámky do JSON projektu selhalo:", error);
+          });
         }).catch(error => {
-          console.warn("Telegram upozornění selhalo:", error);
+          console.warn("Uložení realtime komentáře selhalo:", error);
+          showToast("Komentář se nepodařilo uložit.");
         });
       });
 
@@ -6470,8 +6688,13 @@
 
     logoutButton.addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
+      stopCurrentProjectAutoSync();
       app.loggedIn = false;
       app.currentProjectId = null;
+      if (commentsChannel) {
+        supabaseClient.removeChannel(commentsChannel);
+        commentsChannel = null;
+      }
       if (realtimeChannel) {
         supabaseClient.removeChannel(realtimeChannel);
         realtimeChannel = null;
