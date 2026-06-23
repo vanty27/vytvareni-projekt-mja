@@ -3542,6 +3542,7 @@
     let lastTypingSentAt = 0;
     const REALTIME_CLIENT_ID = generateId();
     let lastMoveBroadcastAt = 0;
+    let connectionRenderTimer = null;
     let remoteProjectReloadTimer = null;
     let projectSyncTimer = null;
     let projectSyncInProgress = false;
@@ -3576,6 +3577,16 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function withTimeout(promise, ms, message = "Operace trvala moc dlouho.") {
+      let timer;
+
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+      });
+
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    }
+
     function hasUnsavedWork() {
       return saveInProgress || savePending;
     }
@@ -3593,10 +3604,10 @@
     async function saveImportantChange(options = {}) {
       updateSaveStatus();
 
-      const ok = await saveAppWithRetry({
+      const ok = await saveApp({
         showError: true,
         ...options
-      }, 4);
+      });
 
       updateSaveStatus();
 
@@ -3682,50 +3693,42 @@
 
       if (!project || !project.id) return true;
 
-      const previousKnownUpdatedAt = project.lastKnownUpdatedAt || project.updatedAt || null;
       const savedAt = new Date().toISOString();
 
       const snapshot = cloneProjectForSave(project);
       snapshot.updatedAt = savedAt;
       snapshot.lastKnownUpdatedAt = savedAt;
 
-      let query = supabaseClient
-        .from("projects")
-        .update({
-          name: snapshot.name,
-          type: snapshot.type,
-          data: snapshot,
-          updated_at: savedAt
-        })
-        .eq("id", snapshot.id)
-        .select("id,updated_at");
+      try {
+        const savePromise = supabaseClient
+          .from("projects")
+          .update({
+            name: snapshot.name,
+            type: snapshot.type,
+            data: snapshot,
+            updated_at: savedAt
+          })
+          .eq("id", snapshot.id)
+          .select("id,updated_at")
+          .single();
 
-      // Ochrana proti přepsání novější verze starým prohlížečem.
-      // Pokud někdo jiný mezitím uložil novější verzi, tento update neproběhne.
-      if (previousKnownUpdatedAt) {
-        query = query.eq("updated_at", previousKnownUpdatedAt);
-      }
+        const { data, error } = await withTimeout(savePromise, 10000, "Uložení do Supabase trvalo moc dlouho.");
 
-      const { data, error } = await query;
+        if (error) {
+          console.warn("Uložení projektu do Supabase selhalo:", error);
+          return false;
+        }
 
-      if (error) {
-        console.warn("Uložení projektu do Supabase selhalo:", error);
+        const confirmedUpdatedAt = data?.updated_at || savedAt;
+        project.updatedAt = confirmedUpdatedAt;
+        project.lastKnownUpdatedAt = confirmedUpdatedAt;
+        lastLocalSaveAt = Date.now();
+
+        return true;
+      } catch (error) {
+        console.warn("Uložení projektu se nedokončilo:", error);
         return false;
       }
-
-      if (!data || data.length === 0) {
-        console.warn("Uložení zastaveno: projekt byl mezitím změněn v jiném okně.");
-        await reloadProjectAfterSaveConflict(snapshot.id);
-        showToast("Projekt byl mezitím změněn jinde. Načítám aktuální verzi.");
-        return false;
-      }
-
-      const confirmedUpdatedAt = data[0].updated_at || savedAt;
-      project.updatedAt = confirmedUpdatedAt;
-      project.lastKnownUpdatedAt = confirmedUpdatedAt;
-      lastLocalSaveAt = Date.now();
-
-      return true;
     }
 
     async function runSaveQueue() {
@@ -3738,53 +3741,67 @@
       let shouldShowError = false;
       let shouldBroadcast = false;
 
-      while (savePending) {
-        savePending = false;
+      try {
+        while (savePending) {
+          savePending = false;
 
-        const showErrorForThisSave = pendingSaveShowError;
-        const broadcastForThisSave = pendingSaveBroadcast;
+          const showErrorForThisSave = pendingSaveShowError;
+          const broadcastForThisSave = pendingSaveBroadcast;
 
-        pendingSaveShowError = false;
-        pendingSaveBroadcast = false;
+          pendingSaveShowError = false;
+          pendingSaveBroadcast = false;
 
-        shouldShowError = shouldShowError || showErrorForThisSave;
-        shouldBroadcast = shouldBroadcast || broadcastForThisSave;
+          shouldShowError = shouldShowError || showErrorForThisSave;
+          shouldBroadcast = shouldBroadcast || broadcastForThisSave;
 
-        let saved = false;
+          let saved = false;
 
-        for (let attempt = 1; attempt <= 4; attempt += 1) {
-          saved = await saveCurrentProjectOnce();
+          for (let attempt = 1; attempt <= 3; attempt += 1) {
+            saved = await saveCurrentProjectOnce();
 
-          if (saved) break;
+            if (saved) break;
 
-          if (attempt < 4) {
-            await wait(300 * attempt);
+            if (attempt < 3) {
+              await wait(350 * attempt);
+            }
+          }
+
+          if (!saved) {
+            ok = false;
+            break;
           }
         }
 
-        if (!saved) {
-          ok = false;
-          break;
+        if (ok && shouldBroadcast) {
+          sendProjectSaved(getCurrentProject());
+        }
+
+        if (!ok && shouldShowError) {
+          showToast("Uložení selhalo. Zkus změnu zopakovat.");
+        }
+
+        return ok;
+      } catch (error) {
+        console.warn("Ukládací fronta spadla:", error);
+        if (shouldShowError) {
+          showToast("Uložení selhalo.");
+        }
+        return false;
+      } finally {
+        saveInProgress = false;
+
+        if (!ok) {
+          savePending = false;
+          pendingSaveShowError = false;
+          pendingSaveBroadcast = false;
+        }
+
+        updateSaveStatus();
+
+        if (savePending) {
+          activeSavePromise = runSaveQueue();
         }
       }
-
-      saveInProgress = false;
-      updateSaveStatus();
-
-      if (ok && shouldBroadcast) {
-        sendProjectSaved(getCurrentProject());
-      }
-
-      if (!ok && shouldShowError) {
-        showToast("Uložení selhalo.");
-      }
-
-      if (savePending && ok) {
-        activeSavePromise = runSaveQueue();
-        return activeSavePromise;
-      }
-
-      return ok;
     }
 
     async function saveApp(options = {}) {
@@ -3815,7 +3832,7 @@
         if (ok) return true;
 
         if (attempt < attempts) {
-          await wait(400 * attempt);
+          await wait(500 * attempt);
         }
       }
 
@@ -3987,6 +4004,7 @@
       }
 
       renderConnections();
+      scheduleStableConnections();
     }
 
 
@@ -4852,6 +4870,36 @@
       node.titleColor = getApprovalColor(node.approvals);
     }
 
+
+    function scheduleStableConnections() {
+      if (connectionRenderTimer) {
+        clearTimeout(connectionRenderTimer);
+        connectionRenderTimer = null;
+      }
+
+      // 1) ihned po vykreslení DOMu
+      requestAnimationFrame(() => {
+        renderConnections();
+      });
+
+      // 2) po krátkém dosednutí layoutu
+      connectionRenderTimer = setTimeout(() => {
+        renderConnections();
+        connectionRenderTimer = null;
+      }, 120);
+
+      // 3) po načtení obrázků / fontů, aby čáry po refreshi seděly stejně
+      setTimeout(renderConnections, 450);
+      setTimeout(renderConnections, 1100);
+    }
+
+    function attachStableConnectionImageHandlers(el) {
+      el.querySelectorAll("img").forEach(image => {
+        image.addEventListener("load", scheduleStableConnections, { once: true });
+        image.addEventListener("error", scheduleStableConnections, { once: true });
+      });
+    }
+
     function renderMap() {
       const project = getCurrentProject();
       if (!project) return;
@@ -4941,6 +4989,7 @@
 
           el.classList.add(`title-${escapeHtml(node.titleColor || "green")}`);
           boardWrap.appendChild(el);
+          attachStableConnectionImageHandlers(el);
           attachNodeEvents(el, node.id);
           return;
         }
@@ -5014,11 +5063,11 @@
         `;
 
         boardWrap.appendChild(el);
+        attachStableConnectionImageHandlers(el);
         attachNodeEvents(el, node.id);
       });
 
-      renderConnections();
-      saveApp();
+      scheduleStableConnections();
     }
 
 
@@ -5845,6 +5894,7 @@
         });
         project.updatedAt = new Date().toISOString();
         renderMap();
+        saveApp({ showError: true });
         showToast("Řádek přidán.");
       });
 
@@ -6273,6 +6323,8 @@
         path.classList.add("edge-line");
 
         const d = `M ${startX} ${startY} C ${curveX} ${startY}, ${curveX} ${endY}, ${endX} ${endY}`;
+
+        edge.lastRenderedPath = d;
 
         path.setAttribute("d", d);
         path.setAttribute("stroke", "#9aa5b5");
@@ -7521,6 +7573,10 @@
       }
     }
 
+
+
+    window.addEventListener("load", scheduleStableConnections);
+    window.addEventListener("resize", scheduleStableConnections);
 
     window.addEventListener("beforeunload", event => {
       if (!hasUnsavedWork()) return;
