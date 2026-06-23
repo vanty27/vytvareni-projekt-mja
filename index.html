@@ -3132,6 +3132,26 @@
       word-break: break-word;
     }
 
+
+    .save-status-indicator {
+      height: 48px;
+      padding: 0 16px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+      font-size: 14px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .save-status-indicator.hidden {
+      display: none;
+    }
+
   </style>
 </head>
 
@@ -3218,6 +3238,7 @@
 
       <button id="zoomResetButton" class="secondary-btn">100 %</button>
       <button id="fitButton" class="secondary-btn">Přizpůsobit</button>
+      <div id="saveStatusIndicator" class="save-status-indicator hidden">Ukládám…</div>
       <button id="deleteProjectButton" class="danger-btn">Smazat projekt</button>
     </header>
 
@@ -3445,6 +3466,7 @@
     const addRootCardButton = document.getElementById("addRootCardButton");
     const exportPdfButton = document.getElementById("exportPdfButton");
     const deleteProjectButton = document.getElementById("deleteProjectButton");
+    const saveStatusIndicator = document.getElementById("saveStatusIndicator");
 
     const zoomOutButton = document.getElementById("zoomOutButton");
     const zoomInButton = document.getElementById("zoomInButton");
@@ -3552,6 +3574,37 @@
 
     function wait(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function hasUnsavedWork() {
+      return saveInProgress || savePending;
+    }
+
+    function updateSaveStatus() {
+      if (!saveStatusIndicator) return;
+
+      if (hasUnsavedWork()) {
+        saveStatusIndicator.classList.remove("hidden");
+      } else {
+        saveStatusIndicator.classList.add("hidden");
+      }
+    }
+
+    async function saveImportantChange(options = {}) {
+      updateSaveStatus();
+
+      const ok = await saveAppWithRetry({
+        showError: true,
+        ...options
+      }, 4);
+
+      updateSaveStatus();
+
+      if (!ok) {
+        showToast("Změna se nepodařila uložit.");
+      }
+
+      return ok;
     }
 
     function estimateStoredSize(value) {
@@ -3679,6 +3732,7 @@
       if (saveInProgress) return activeSavePromise;
 
       saveInProgress = true;
+      updateSaveStatus();
 
       let ok = true;
       let shouldShowError = false;
@@ -3715,6 +3769,7 @@
       }
 
       saveInProgress = false;
+      updateSaveStatus();
 
       if (ok && shouldBroadcast) {
         sendProjectSaved(getCurrentProject());
@@ -3741,6 +3796,7 @@
       savePending = true;
       pendingSaveShowError = pendingSaveShowError || !!options.showError;
       pendingSaveBroadcast = pendingSaveBroadcast || options.broadcast !== false;
+      updateSaveStatus();
 
       if (!saveInProgress) {
         activeSavePromise = runSaveQueue();
@@ -5343,7 +5399,11 @@
         const project = getCurrentProject();
         if (project && hasMoved) {
           project.updatedAt = new Date().toISOString();
-          await saveApp();
+          showToast("Ukládám posun karty…");
+          const saved = await saveImportantChange({ showError: true });
+          if (saved) {
+            showToast("Posun karty uložen.");
+          }
         }
       }
 
@@ -7460,6 +7520,15 @@
         showScreen("login");
       }
     }
+
+
+    window.addEventListener("beforeunload", event => {
+      if (!hasUnsavedWork()) return;
+
+      event.preventDefault();
+      event.returnValue = "Změny se ještě ukládají.";
+      return event.returnValue;
+    });
 
     initOnlineApp();
   </script>
