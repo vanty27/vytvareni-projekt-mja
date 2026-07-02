@@ -3551,6 +3551,10 @@
     let pendingSaveShowError = false;
     let pendingSaveBroadcast = false;
     let activeSavePromise = Promise.resolve(true);
+    const SAVE_DEBOUNCE_MS = 1800;
+    const SAVE_RETRY_DELAY_MS = 900;
+    let saveDebounceTimer = null;
+    let saveDebounceResolvers = [];
 
     let selectedNodeId = null;
 
@@ -3588,7 +3592,7 @@
     }
 
     function hasUnsavedWork() {
-      return saveInProgress || savePending;
+      return saveInProgress || savePending || Boolean(saveDebounceTimer);
     }
 
     function updateSaveStatus() {
@@ -3599,6 +3603,17 @@
       } else {
         saveStatusIndicator.classList.add("hidden");
       }
+    }
+
+    function resolveDebouncedSaveResolvers(ok) {
+      const resolvers = saveDebounceResolvers.splice(0);
+      resolvers.forEach(resolve => {
+        try {
+          resolve(ok);
+        } catch (error) {
+          console.warn("Vyřešení odloženého ukládání selhalo:", error);
+        }
+      });
     }
 
     async function saveImportantChange(options = {}) {
@@ -3762,7 +3777,7 @@
             if (saved) break;
 
             if (attempt < 3) {
-              await wait(350 * attempt);
+              await wait(SAVE_RETRY_DELAY_MS * attempt);
             }
           }
 
@@ -3810,16 +3825,45 @@
       const project = getCurrentProject();
       if (!project || !project.id) return true;
 
+      // Běžné změny (psaní textu, drobné úpravy) se ukládají odloženě.
+      // Důležité změny s showError/immediate se pošlou hned.
+      const immediate = options.immediate === true || options.showError === true;
+
       savePending = true;
       pendingSaveShowError = pendingSaveShowError || !!options.showError;
       pendingSaveBroadcast = pendingSaveBroadcast || options.broadcast !== false;
       updateSaveStatus();
 
+      if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+      }
+
+      if (!immediate) {
+        return new Promise(resolve => {
+          saveDebounceResolvers.push(resolve);
+
+          saveDebounceTimer = setTimeout(async () => {
+            saveDebounceTimer = null;
+            updateSaveStatus();
+
+            if (!saveInProgress) {
+              activeSavePromise = runSaveQueue();
+            }
+
+            const ok = await activeSavePromise;
+            resolveDebouncedSaveResolvers(ok);
+          }, SAVE_DEBOUNCE_MS);
+        });
+      }
+
       if (!saveInProgress) {
         activeSavePromise = runSaveQueue();
       }
 
-      return activeSavePromise;
+      const ok = await activeSavePromise;
+      resolveDebouncedSaveResolvers(ok);
+      return ok;
     }
 
     async function saveAppWithRetry(options = {}, attempts = 3) {
@@ -3862,7 +3906,8 @@
       if (!realtimeChannel || !projectId || !node?.id) return;
 
       const now = Date.now();
-      if (now - lastMoveBroadcastAt < 45) return;
+      // Realtime posun jen kvůli živému náhledu. Neposílat při každém pixelu.
+      if (now - lastMoveBroadcastAt < 200) return;
       lastMoveBroadcastAt = now;
 
       realtimeChannel.send({
@@ -3936,7 +3981,7 @@
 
       remoteProjectReloadTimer = setTimeout(() => {
         reloadProjectFromRealtime(projectId);
-      }, 180);
+      }, 900);
     }
 
     function stopCurrentProjectAutoSync() {
